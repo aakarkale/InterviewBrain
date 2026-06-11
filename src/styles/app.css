@@ -1,0 +1,87 @@
+/* ============================================================
+   app.css — global chrome
+   Layer 2 of 3 (tokens → app → sections).
+   Base element styling, selection, focus, scrollbars, and the
+   small set of shared primitives (surface, glow tracking) used
+   on both the landing page and inside the app.
+   ============================================================ */
+
+html {
+  background: var(--bg);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-1);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--accent) 80%, var(--bg));
+  color: var(--accent-contrast);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* thin, calm scrollbars in the app chrome */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+/* ---- shared primitives ---------------------------------- */
+
+/* a panel that sits on the page background */
+.surface {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+[data-theme="light"] .surface {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-1);
+}
+
+/* pointer-tracked accent glow: JS writes --mx/--my, CSS draws.
+   Inert (centered, invisible) until .is-glowing is toggled. */
+.glow-track {
+  position: relative;
+}
+
+.glow-track::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    220px circle at var(--mx) var(--my),
+    var(--glow),
+    transparent 70%
+  );
+  transition: opacity var(--dur-2) var(--ease-out);
+}
+
+.glow-track.is-glowing::after {
+  opacity: 1;
+}
+
+/* ---- reduced motion --------------------------------------
+   JS motion (GSAP, Lenis) checks prefers-reduced-motion itself;
+   this is the CSS-side guarantee. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

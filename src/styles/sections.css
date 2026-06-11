@@ -1,0 +1,27 @@
+/* ============================================================
+   sections.css — per-section styles
+   Layer 3 of 3 (tokens → app → sections).
+   Landing page sections live here; everything reads tokens.css.
+   Populated section by section as the landing page is built.
+   ============================================================ */
+
+/* ---- shared keyframes ---- */
+
+@keyframes starburst-spin {
+  from {
+    rotate: 0deg;
+  }
+  to {
+    rotate: 360deg;
+  }
+}
+
+@keyframes glow-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}

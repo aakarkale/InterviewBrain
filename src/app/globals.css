@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+/* three-layer vanilla CSS foundation (shared by landing + app) */
+@import "../styles/tokens.css";
+@import "../styles/app.css";
+@import "../styles/sections.css";
+
+/* dark mode follows the data-theme attribute, not media queries */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Tailwind theme — every value derives from tokens.css.
+   Note: Tailwind/shadcn `accent` (subtle hover tint) intentionally
+   maps to a surface token; the brand accent is `primary`. */
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text-1);
+
+  --color-card: var(--surface-1);
+  --color-card-foreground: var(--text-1);
+  --color-popover: var(--surface-2);
+  --color-popover-foreground: var(--text-1);
+
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-contrast);
+  --color-secondary: var(--surface-2);
+  --color-secondary-foreground: var(--text-1);
+  --color-muted: var(--surface-2);
+  --color-muted-foreground: var(--text-2);
+  --color-accent: var(--surface-2);
+  --color-accent-foreground: var(--text-1);
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: var(--danger-contrast);
+  --color-success: var(--ok);
+  --color-warning: var(--warn);
+
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--ring);
+
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-display);
+
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  --shadow-sm: var(--shadow-1);
+  --shadow-md: var(--shadow-2);
+  --shadow-lg: var(--shadow-3);
+  --shadow-glow: var(--shadow-glow);
+
+  --ease-out: var(--ease-out);
+  --ease-in-out: var(--ease-in-out);
+  --ease-snap: var(--ease-snap);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text-1);
+  }
+}

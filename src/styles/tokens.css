@@ -1,0 +1,129 @@
+/* ============================================================
+   tokens.css — InterviewBrain design tokens
+   Layer 1 of 3 (tokens → app → sections).
+   Every color, radius, shadow, duration, and ease in both the
+   landing page and the app derives from these custom properties.
+   Tailwind consumes them via @theme inline in globals.css.
+
+   Themes: dark is the default (:root). Light is the brutalist
+   variant (hard offset shadows, ink borders) via [data-theme].
+   ============================================================ */
+
+:root {
+  /* ---- palette: surfaces ---- */
+  --bg: oklch(0.145 0.012 270);
+  --surface-0: oklch(0.165 0.013 270);
+  --surface-1: oklch(0.19 0.014 270);
+  --surface-2: oklch(0.225 0.016 270);
+  --surface-3: oklch(0.27 0.018 270);
+
+  /* ---- palette: text ---- */
+  --text-1: oklch(0.93 0.006 270);
+  --text-2: oklch(0.72 0.012 270);
+  --text-3: oklch(0.55 0.014 270);
+
+  /* ---- palette: lines ---- */
+  --border: oklch(0.28 0.014 270);
+  --border-strong: oklch(0.36 0.016 270);
+
+  /* ---- palette: brand ----
+     --accent is a per-element knob: any component or section may
+     override it locally and every derived tint below follows. */
+  --accent: oklch(0.66 0.19 285);
+  --accent-2: oklch(0.8 0.13 80);
+  --accent-contrast: oklch(0.985 0.005 285);
+
+  /* ---- palette: status ---- */
+  --ok: oklch(0.72 0.15 155);
+  --warn: oklch(0.78 0.14 80);
+  --danger: oklch(0.64 0.19 25);
+  --danger-contrast: oklch(0.985 0.005 25);
+
+  /* ---- derived tints (OKLab color-mix; recompute when --accent
+     is overridden per element) ---- */
+  --accent-soft: color-mix(in oklab, var(--accent) 14%, transparent);
+  --accent-faint: color-mix(in oklab, var(--accent) 7%, transparent);
+  --border-accent: color-mix(in oklab, var(--accent) 35%, var(--border));
+  --glow: color-mix(in oklab, var(--accent) 22%, transparent);
+  --tooltip-bg: color-mix(in oklab, var(--accent) 9%, var(--surface-2));
+  --ring: color-mix(in oklab, var(--accent) 65%, transparent);
+
+  /* ---- glow tracking knobs (set per element by pointer JS) ---- */
+  --mx: 50%;
+  --my: 50%;
+
+  /* ---- radii ---- */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+  /* shadcn/ui reads --radius */
+  --radius: 0.5rem;
+
+  /* ---- elevation (soft in dark, replaced by hard offsets in light) ---- */
+  --shadow-1: 0 1px 2px oklch(0 0 0 / 0.28);
+  --shadow-2: 0 4px 12px oklch(0 0 0 / 0.32);
+  --shadow-3: 0 12px 32px oklch(0 0 0 / 0.4);
+  --shadow-glow: 0 0 24px var(--glow);
+
+  /* ---- motion ---- */
+  --dur-1: 120ms;
+  --dur-2: 240ms;
+  --dur-3: 420ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-snap: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ---- type ----
+     Font variables are injected by next/font in layout.tsx:
+     --font-geist-sans, --font-geist-mono, --font-unbounded. */
+  --font-display: var(--font-unbounded), var(--font-geist-sans), system-ui,
+    sans-serif;
+
+  color-scheme: dark;
+}
+
+/* ============================================================
+   Light theme — the brutalist variant.
+   Warm paper, ink lines, hard offset shadows, no blur.
+   ============================================================ */
+[data-theme="light"] {
+  --bg: oklch(0.972 0.008 95);
+  --surface-0: oklch(0.985 0.005 95);
+  --surface-1: oklch(0.995 0.003 95);
+  --surface-2: oklch(0.955 0.009 95);
+  --surface-3: oklch(0.93 0.011 95);
+
+  --text-1: oklch(0.21 0.02 270);
+  --text-2: oklch(0.4 0.018 270);
+  --text-3: oklch(0.55 0.015 270);
+
+  /* ink lines: borders read as drawn, not tinted */
+  --border: oklch(0.32 0.018 270);
+  --border-strong: oklch(0.21 0.02 270);
+
+  --accent: oklch(0.5 0.2 285);
+  --accent-2: oklch(0.68 0.14 75);
+  --accent-contrast: oklch(0.985 0.005 285);
+
+  --ok: oklch(0.55 0.15 155);
+  --warn: oklch(0.62 0.14 80);
+  --danger: oklch(0.55 0.2 25);
+
+  --accent-soft: color-mix(in oklab, var(--accent) 12%, transparent);
+  --accent-faint: color-mix(in oklab, var(--accent) 6%, transparent);
+  --border-accent: color-mix(in oklab, var(--accent) 45%, var(--border-strong));
+  --glow: color-mix(in oklab, var(--accent) 16%, transparent);
+  --tooltip-bg: color-mix(in oklab, var(--accent) 7%, var(--surface-1));
+  --ring: color-mix(in oklab, var(--accent) 70%, transparent);
+
+  /* hard offset shadows — the brutalist signature */
+  --shadow-1: 2px 2px 0 var(--border-strong);
+  --shadow-2: 4px 4px 0 var(--border-strong);
+  --shadow-3: 6px 6px 0 var(--border-strong);
+  --shadow-glow: 4px 4px 0 color-mix(in oklab, var(--accent) 55%, var(--bg));
+
+  color-scheme: light;
+}
