@@ -1,15 +1,30 @@
 "use server";
 
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { regenerateBrain } from "@/lib/brain/extract";
 import {
   DOCUMENT_TYPE_VALUES,
   MAX_ACTIVE_APPLICATIONS,
   ROUND_OUTCOME_VALUES,
   ROUND_TYPE_VALUES,
 } from "./constants";
+
+// A logged real-round outcome with notes is brain input (SPEC). When one
+// lands, regenerate insights after the response so the brain learns from real
+// interviews, not just practice.
+function maybeRegenerateBrain(outcome: string, notes: string | null) {
+  const isRealSignal =
+    outcome !== "upcoming" && notes !== null && notes.trim().length > 0;
+  if (isRealSignal) {
+    after(async () => {
+      await regenerateBrain();
+    });
+  }
+}
 
 export type ActionState = { error: string | null; success?: boolean };
 
@@ -162,6 +177,7 @@ export async function createRound(
     return { error: "Round number must be a positive whole number." };
   }
 
+  const post_round_notes = nullableField(formData, "post_round_notes");
   const { supabase } = await requireUser();
   const { error } = await supabase.from("rounds").insert({
     application_id,
@@ -171,15 +187,16 @@ export async function createRound(
     interviewer_name: nullableField(formData, "interviewer_name"),
     interviewer_role: nullableField(formData, "interviewer_role"),
     scheduled_date: nullableField(formData, "scheduled_date"),
-    post_round_notes: nullableField(formData, "post_round_notes"),
+    post_round_notes,
   });
 
   if (error) return { error: error.message };
 
-  // Post-round notes are brain input. When the brain pipeline lands (Phase 2
-  // feature 5), logging a completed/passed/rejected outcome triggers an
-  // event-driven insight regeneration here.
+  // Post-round notes are brain input: a logged real outcome regenerates the
+  // brain (event-driven trigger, per the locked decision).
+  maybeRegenerateBrain(outcome, post_round_notes);
   revalidatePath(`/applications/${application_id}`);
+  revalidatePath("/brain");
   return success;
 }
 
@@ -204,6 +221,7 @@ export async function updateRound(
     return { error: "Round number must be a positive whole number." };
   }
 
+  const post_round_notes = nullableField(formData, "post_round_notes");
   const { supabase } = await requireUser();
   const { error } = await supabase
     .from("rounds")
@@ -214,13 +232,15 @@ export async function updateRound(
       interviewer_name: nullableField(formData, "interviewer_name"),
       interviewer_role: nullableField(formData, "interviewer_role"),
       scheduled_date: nullableField(formData, "scheduled_date"),
-      post_round_notes: nullableField(formData, "post_round_notes"),
+      post_round_notes,
     })
     .eq("id", id);
 
   if (error) return { error: error.message };
 
+  maybeRegenerateBrain(outcome, post_round_notes);
   revalidatePath(`/applications/${application_id}`);
+  revalidatePath("/brain");
   return success;
 }
 

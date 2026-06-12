@@ -48,6 +48,12 @@ export default async function AppLayout({
               >
                 Story bank
               </Link>
+              <Link
+                href="/brain"
+                className="rounded-md px-2 py-1 text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Brain
+              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-1">
