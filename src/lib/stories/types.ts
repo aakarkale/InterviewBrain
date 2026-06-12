@@ -1,0 +1,17 @@
+import type { Tables } from "@/lib/supabase/database.types";
+
+// Plain types + helpers, safe to import from Client Components (no server-only
+// dependency). Keep data-fetching in queries.ts, which imports the server
+// client and must never reach a client bundle.
+
+export type Story = Tables<"stories">;
+export type Competency = Tables<"competencies">;
+
+// competency_tags is stored as a jsonb array of competency id strings.
+export function storyTags(story: Story): string[] {
+  return Array.isArray(story.competency_tags)
+    ? (story.competency_tags as unknown[]).filter(
+        (t): t is string => typeof t === "string"
+      )
+    : [];
+}
