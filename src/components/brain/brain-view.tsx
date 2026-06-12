@@ -1,10 +1,11 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
   AlertTriangle,
   Brain,
   Loader2,
+  Network,
   RefreshCw,
   Sparkles,
   TrendingUp,
@@ -14,11 +15,15 @@ import { toast } from "sonner";
 import { refreshBrain } from "@/lib/brain/actions";
 import {
   insightEvidence,
+  type GraphData,
   type Insight,
   type InsightType,
 } from "@/lib/brain/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { MindMap } from "./mind-map";
+
+type Tab = "insights" | "map";
 
 const TYPE_META: Record<
   InsightType,
@@ -50,12 +55,15 @@ function evidenceSummary(insight: Insight): string {
 
 export function BrainView({
   insights,
+  graph,
   competencyNames,
 }: {
   insights: Insight[];
+  graph: GraphData;
   competencyNames: Record<string, string>;
 }) {
   const [pending, startTransition] = useTransition();
+  const [tab, setTab] = useState<Tab>("insights");
 
   function refresh() {
     startTransition(async () => {
@@ -101,7 +109,28 @@ export function BrainView({
         </Button>
       </div>
 
-      {sorted.length === 0 ? (
+      <div
+        role="tablist"
+        aria-label="Brain view"
+        className="inline-flex w-fit gap-1 rounded-lg border bg-card/60 p-1"
+      >
+        <TabButton
+          active={tab === "insights"}
+          onClick={() => setTab("insights")}
+          icon={<Sparkles className="size-3.5" />}
+          label="Insights"
+        />
+        <TabButton
+          active={tab === "map"}
+          onClick={() => setTab("map")}
+          icon={<Network className="size-3.5" />}
+          label="Map"
+        />
+      </div>
+
+      {tab === "map" ? (
+        <MindMap data={graph} />
+      ) : sorted.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed bg-card/40 px-6 py-12 text-center">
           <Brain className="size-6 text-muted-foreground" aria-hidden />
           <div className="flex flex-col gap-1">
@@ -146,10 +175,35 @@ export function BrainView({
           })}
         </div>
       )}
-
-      <p className="text-xs text-muted-foreground">
-        The mind-map view of these connections arrives in the next phase.
-      </p>
     </div>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+        active
+          ? "bg-background text-foreground shadow-sm"
+          : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
   );
 }
