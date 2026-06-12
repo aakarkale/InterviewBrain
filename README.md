@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# InterviewBrain
 
-## Getting Started
+One vault per application. One brain across all of them. Text mock interviews
+built from your actual resume, JD, and research — with feedback that learns
+your weak spots across every company you're talking to.
 
-First, run the development server:
+See `SPEC.md` (project source of truth) for scope, data model, and build order.
+
+## Stack
+
+- **Next.js 16** (App Router, TypeScript) on **Vercel**
+- **Tailwind v4** + vendored **shadcn/ui** primitives, all reading the
+  three-layer vanilla CSS token system: `src/styles/tokens.css` →
+  `app.css` → `sections.css`
+- **Supabase** (Postgres, Auth, RLS on every table)
+- **GSAP 3 + ScrollTrigger + Lenis** on the landing page only — Lenis never
+  ships behind auth
+- Fonts: **Unbounded** (landing display) + **Geist** (app UI). No others.
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.example .env.local   # fill in values (see below)
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | Where to find it | Needed for |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase dashboard → Settings → API | everything |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | same place (anon/publishable key) | everything |
+| `SUPABASE_SERVICE_ROLE_KEY` | same place — **server-side only** | Phase 2 (AI pipelines) |
+| `ANTHROPIC_API_KEY` | console.anthropic.com — server-side only | Phase 2 (interviewer, scoring, brain) |
+| `RESEND_API_KEY` | resend.com | custom auth-email SMTP (optional) |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Never commit `.env` files. Production values live in the Vercel dashboard.
 
-## Learn More
+## Database workflow
 
-To learn more about Next.js, take a look at the following resources:
+All schema changes go through SQL files in `supabase/migrations/` — **never**
+the dashboard editor. The committed files mirror the project's recorded
+migration history one-to-one.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+After any schema change, regenerate types and commit them:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+supabase gen types typescript --project-id <project-ref> --schema public \
+  > src/lib/supabase/database.types.ts
+```
 
-## Deploy on Vercel
+(or the Supabase MCP `generate_typescript_types` tool from a Claude Code
+session.)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+RLS: every table is owner-scoped; `competencies` is read-only seed data for
+authenticated users. The competency slugs are load-bearing rubric keys —
+never rename or delete them, only add.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Auth
+
+Email + password works out of the box (Supabase built-in mailer; swap in
+Resend SMTP for production). Google OAuth requires one-time setup:
+
+1. Google Cloud Console → create an OAuth client (web application)
+2. Authorized redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback`
+3. Supabase dashboard → Authentication → Sign In / Providers → Google → paste
+   client ID + secret
+4. Supabase dashboard → Authentication → URL Configuration → set Site URL and
+   add your domains to Redirect URLs
+
+For nicer confirmation emails across browsers, point the email template's
+confirmation URL at `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email`
+(the `/auth/confirm` route is already implemented).
+
+## Design system
+
+`tokens.css` is the single source of truth: colors (OKLab `color-mix`
+tints), radii, shadows, motion durations/eases, and the per-element knobs
+(`--accent`, `--mx`/`--my` glow tracking). Dark is the default theme;
+light is the brutalist variant (hard offset shadows) via
+`[data-theme="light"]`. Tailwind consumes the same tokens through
+`@theme inline` in `src/app/globals.css`. `prefers-reduced-motion` is
+respected in CSS and in every JS motion path.
+
+## Scripts
+
+| Command | What it does |
+|---|---|
+| `pnpm dev` | dev server |
+| `pnpm build` | production build |
+| `pnpm start` | serve the production build |
+| `pnpm lint` | ESLint |
