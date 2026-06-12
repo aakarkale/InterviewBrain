@@ -28,12 +28,28 @@ export default async function AppLayout({
     <div className="flex min-h-dvh flex-1 flex-col">
       <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-          <Link
-            href="/dashboard"
-            className="font-display text-sm font-semibold tracking-tight transition-colors hover:text-primary"
-          >
-            InterviewBrain
-          </Link>
+          <div className="flex items-center gap-6">
+            <Link
+              href="/dashboard"
+              className="font-display text-sm font-semibold tracking-tight transition-colors hover:text-primary"
+            >
+              InterviewBrain
+            </Link>
+            <nav className="flex items-center gap-1 text-sm">
+              <Link
+                href="/dashboard"
+                className="rounded-md px-2 py-1 text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Applications
+              </Link>
+              <Link
+                href="/stories"
+                className="rounded-md px-2 py-1 text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Story bank
+              </Link>
+            </nav>
+          </div>
           <div className="flex items-center gap-1">
             <ThemeToggle />
             <UserMenu fullName={profile?.full_name ?? null} email={user.email ?? ""} />
