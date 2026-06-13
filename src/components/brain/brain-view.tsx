@@ -57,7 +57,7 @@ export function BrainView({
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Your brain"
-        description="Patterns across every application — what you're strong at, what keeps tripping you up, and where it recurs."
+        description="Patterns across every interview — what you're strong at, what keeps tripping you up, and where it recurs."
         actions={
           <Button variant="outline" size="sm" onClick={refresh} disabled={pending}>
             {pending ? (
@@ -98,7 +98,7 @@ export function BrainView({
         <EmptyState
           icon={Brain}
           title="No insights yet"
-          description="Run a few practice sessions across your applications, or log notes from a real round. Once there's enough signal, the brain surfaces cross-company patterns here."
+          description="Run a few practice sessions across your interviews, or log notes from a real round. Once there's enough signal, the brain surfaces cross-company patterns here."
         />
       ) : (
         <ul className="flex flex-col gap-2.5">

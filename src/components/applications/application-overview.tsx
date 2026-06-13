@@ -19,7 +19,7 @@ export function ApplicationOverview({
   if (editing) {
     return (
       <section className="rounded-lg border bg-card p-5">
-        <h2 className="mb-4 text-sm font-semibold">Edit application</h2>
+        <h2 className="mb-4 text-sm font-semibold">Edit interview</h2>
         <ApplicationForm
           application={application}
           onDone={() => setEditing(false)}

@@ -14,7 +14,7 @@ export default function SignupPage() {
           Create your account
         </h1>
         <p className="text-sm text-muted-foreground">
-          One vault per application. One brain across all of them.
+          One vault per interview. One brain across all of them.
         </p>
       </div>
 

@@ -105,7 +105,7 @@ export function SessionFeedback({
           <div className="flex flex-col gap-0.5">
             <h2 className="text-sm font-semibold">Competency scores</h2>
             <p className="text-sm text-muted-foreground">
-              Weakest first — these feed your brain across every application.
+              Weakest first — these feed your brain across every interview.
             </p>
           </div>
           <ul className="divide-y divide-border/70 overflow-hidden rounded-lg border bg-card">

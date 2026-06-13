@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     template: "%s · InterviewBrain",
   },
   description:
-    "One vault per application. One brain across all of them. Mock interviews that remember your weak spots.",
+    "One vault per interview. One brain across all of them. Mock interviews that remember your weak spots.",
 };
 
 export default function RootLayout({

@@ -422,7 +422,7 @@ export function MindMap({ data }: { data: GraphData }) {
           className="block h-[clamp(420px,62vh,660px)] w-full cursor-grab touch-none select-none active:cursor-grabbing"
           style={{ opacity: 0 }}
           role="application"
-          aria-label="Graph of your applications, competencies, and stories. Drag nodes, scroll to zoom, drag the background to pan."
+          aria-label="Graph of your interviews, competencies, and stories. Drag nodes, scroll to zoom, drag the background to pan."
           onPointerDown={onCanvasPointerDown}
           onPointerMove={onCanvasPointerMove}
           onPointerUp={onCanvasPointerUp}
