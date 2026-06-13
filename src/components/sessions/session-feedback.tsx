@@ -67,13 +67,13 @@ export function SessionFeedback({
         href={`/applications/${applicationId}`}
         className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
-        <ArrowLeft className="size-4" /> {companyName}
+        <ArrowLeft className="size-3.5" /> {companyName}
       </Link>
 
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="text-lg font-semibold tracking-[-0.01em]">
               Session feedback
             </h1>
             <Badge variant="secondary">{interviewLabel}</Badge>
@@ -83,59 +83,74 @@ export function SessionFeedback({
           </p>
         </div>
         {hasScores ? (
-          <div className="flex flex-col items-end">
-            <span className="text-2xl font-semibold tabular-nums">
+          <div className="flex flex-col items-end gap-0.5">
+            <span className="font-mono text-2xl leading-none font-medium tabular-nums">
               {avg.toFixed(1)}
-              <span className="text-base text-muted-foreground">/5</span>
+              <span className="text-base text-text-3">/5</span>
             </span>
-            <span className="text-xs text-muted-foreground">average score</span>
+            <span className="text-micro text-muted-foreground">average</span>
           </div>
         ) : null}
       </div>
 
       {summary ? (
-        <div className="rounded-xl border bg-card p-5 shadow-sm">
-          <h2 className="mb-2 text-sm font-medium text-muted-foreground">
-            Summary
-          </h2>
+        <div className="flex flex-col gap-2 rounded-lg border bg-card p-4">
+          <h2 className="text-micro text-muted-foreground">Summary</h2>
           <p className="text-sm leading-relaxed whitespace-pre-wrap">{summary}</p>
         </div>
       ) : null}
 
       {hasScores ? (
         <section className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold">Competency scores</h2>
-          <p className="text-sm text-muted-foreground">
-            Weakest first — these feed your brain across every application.
-          </p>
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-sm font-semibold">Competency scores</h2>
+            <p className="text-sm text-muted-foreground">
+              Weakest first — these feed your brain across every application.
+            </p>
+          </div>
+          <ul className="divide-y divide-border/70 overflow-hidden rounded-lg border bg-card">
             {scored.map((s) => (
-              <div
-                key={s.id}
-                className="flex flex-col gap-2 rounded-xl border bg-card p-4 shadow-sm"
-              >
+              <li key={s.id} className="flex flex-col gap-2 px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="font-medium">{s.name}</span>
-                  <Badge variant={s.score <= 2 ? "destructive" : "secondary"}>
+                  <span className="text-sm font-medium">{s.name}</span>
+                  <span
+                    className={`font-mono text-xs tabular-nums ${
+                      s.score <= 2 ? "text-destructive" : "text-muted-foreground"
+                    }`}
+                  >
                     {s.score}/5 · {SCORE_LABEL[s.score]}
-                  </Badge>
+                  </span>
                 </div>
                 <ScoreBar score={s.score} />
                 <p className="text-sm leading-relaxed text-muted-foreground">
                   {s.comment}
                 </p>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
+          <form action={action}>
+            <input type="hidden" name="id" value={sessionId} />
+            <Button type="submit" variant="ghost" size="sm" disabled={pending}>
+              {pending ? (
+                <>
+                  <Loader2 className="animate-spin" /> Re-scoring…
+                </>
+              ) : (
+                <>
+                  <RefreshCw /> Re-score
+                </>
+              )}
+            </Button>
+          </form>
         </section>
       ) : (
-        <div className="rounded-xl border border-dashed bg-card/40 p-6 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed bg-surface-0/40 p-6 text-center">
           <p className="text-sm text-muted-foreground">
             {summary
               ? "No competency scores for this session."
               : "Scoring didn't finish for this session."}
           </p>
-          <form action={action} className="mt-3">
+          <form action={action}>
             <input type="hidden" name="id" value={sessionId} />
             <Button type="submit" variant="outline" size="sm" disabled={pending}>
               {pending ? (
@@ -152,43 +167,31 @@ export function SessionFeedback({
         </div>
       )}
 
-      {hasScores ? (
-        <form action={action}>
-          <input type="hidden" name="id" value={sessionId} />
-          <Button type="submit" variant="ghost" size="sm" disabled={pending}>
-            {pending ? (
-              <>
-                <Loader2 className="animate-spin" /> Re-scoring…
-              </>
-            ) : (
-              <>
-                <RefreshCw /> Re-score
-              </>
-            )}
-          </Button>
-        </form>
-      ) : null}
-
       <section className="flex flex-col gap-2">
         <button
           type="button"
           onClick={() => setShowTranscript((v) => !v)}
+          aria-expanded={showTranscript}
           className="flex w-fit items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
           <ChevronDown
-            className={`size-4 transition-transform ${showTranscript ? "rotate-180" : ""}`}
+            className={`size-3.5 transition-transform duration-150 ${showTranscript ? "rotate-180" : ""}`}
           />
           {showTranscript ? "Hide" : "Show"} transcript ({transcript.length}{" "}
           messages)
         </button>
         {showTranscript ? (
-          <div className="flex flex-col gap-3 rounded-xl border bg-card/40 p-4">
+          <div className="flex flex-col gap-4 rounded-lg border bg-surface-0/40 p-4 sm:p-5">
             {transcript.map((m, i) => (
               <div key={i} className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-muted-foreground uppercase">
+                <span
+                  className={`text-micro ${
+                    m.role === "assistant" ? "text-text-3" : "text-primary"
+                  }`}
+                >
                   {m.role === "assistant" ? "Interviewer" : "You"}
                 </span>
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                <p className="max-w-[72ch] text-sm leading-relaxed whitespace-pre-wrap">
                   {m.content}
                 </p>
               </div>
@@ -202,16 +205,18 @@ export function SessionFeedback({
 
 function ScoreBar({ score }: { score: number }) {
   return (
-    <div className="flex gap-1" aria-hidden>
+    <div className="flex gap-0.5" aria-hidden>
       {[1, 2, 3, 4, 5].map((n) => (
         <div
           key={n}
-          className={`h-1.5 flex-1 rounded-full ${
+          className={`h-1 flex-1 rounded-full ${
             n <= score
               ? score <= 2
                 ? "bg-destructive"
-                : "bg-primary"
-              : "bg-border"
+                : score >= 4
+                  ? "bg-success"
+                  : "bg-primary"
+              : "bg-surface-3"
           }`}
         />
       ))}

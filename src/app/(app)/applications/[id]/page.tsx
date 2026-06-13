@@ -9,7 +9,6 @@ import { ApplicationOverview } from "@/components/applications/application-overv
 import { DocumentsSection } from "@/components/applications/documents-section";
 import { RoundsSection } from "@/components/applications/rounds-section";
 import { SessionsSection } from "@/components/sessions/sessions-section";
-import { Separator } from "@/components/ui/separator";
 
 // Logging a real-round outcome triggers background brain regeneration (an AI
 // call) via after(); give the route headroom beyond the default timeout.
@@ -42,21 +41,20 @@ export default async function ApplicationPage({
   const sessions = await getSessionsForApplication(id);
 
   return (
-    <div className="flex flex-col gap-8">
-      <Link
-        href="/dashboard"
-        className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" /> Dashboard
-      </Link>
+    <div className="flex flex-col gap-9">
+      <div className="flex flex-col gap-5">
+        <Link
+          href="/dashboard"
+          className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5" /> Applications
+        </Link>
 
-      <ApplicationOverview application={application} />
-      <Separator />
+        <ApplicationOverview application={application} />
+      </div>
+
       <DocumentsSection applicationId={application.id} documents={documents} />
-      <Separator />
       <RoundsSection applicationId={application.id} rounds={rounds} />
-      <Separator />
-
       <SessionsSection
         applicationId={application.id}
         isArchived={application.is_archived}

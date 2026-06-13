@@ -8,7 +8,7 @@ import {
   useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Send, SquarePen } from "lucide-react";
+import { ArrowUp, Loader2, SquarePen } from "lucide-react";
 import { toast } from "sonner";
 
 import { completeSession } from "@/lib/sessions/actions";
@@ -17,7 +17,6 @@ import {
   type ChatMessage,
 } from "@/lib/sessions/constants";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 
 type Props = {
   sessionId: string;
@@ -147,48 +146,59 @@ export function InterviewChat({ sessionId, initialMessages }: Props) {
   const answered = messages.some((m) => m.role === "user");
 
   return (
-    <div className="flex h-[calc(100dvh-13rem)] min-h-100 flex-col gap-4">
+    <div className="flex h-[calc(100dvh-12rem)] min-h-100 flex-col gap-3">
       <div
         ref={scrollRef}
-        className="flex-1 space-y-4 overflow-y-auto rounded-xl border bg-card/40 p-4 sm:p-6"
+        className="flex-1 overflow-y-auto rounded-lg border bg-surface-0/40"
       >
-        {messages.map((m, i) => (
-          <Bubble key={i} role={m.role} text={m.content} />
-        ))}
-        {streaming && streamed ? (
-          <Bubble role="assistant" text={streamed} />
-        ) : null}
-        {streaming && !streamed ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />
-            {answered ? "The interviewer is thinking…" : "Starting your interview…"}
-          </div>
-        ) : null}
+        <div className="flex flex-col gap-5 p-4 sm:p-6">
+          {messages.map((m, i) => (
+            <Turn key={i} role={m.role} text={m.content} />
+          ))}
+          {streaming && streamed ? (
+            <Turn role="assistant" text={streamed} live />
+          ) : null}
+          {streaming && !streamed ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-3.5 animate-spin" />
+              {answered
+                ? "The interviewer is thinking…"
+                : "Starting your interview…"}
+            </div>
+          ) : null}
+        </div>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <div className="flex items-end gap-2">
-          <Textarea
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-col rounded-lg border bg-surface-0/60 transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/40">
+          <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKeyDown}
             maxLength={MAX_MESSAGE_LENGTH}
             placeholder={
-              streaming ? "Wait for the interviewer…" : "Type your answer… (Enter to send, Shift+Enter for a new line)"
+              streaming ? "Wait for the interviewer…" : "Type your answer…"
             }
             disabled={streaming || ending}
-            className="min-h-12 flex-1 resize-none"
+            className="max-h-40 min-h-16 w-full resize-none bg-transparent px-3 pt-2.5 text-base leading-relaxed outline-none placeholder:text-text-3 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
             rows={2}
             aria-label="Your answer"
           />
-          <Button
-            type="button"
-            onClick={submit}
-            disabled={streaming || ending || !draft.trim()}
-            aria-label="Send answer"
-          >
-            <Send />
-          </Button>
+          <div className="flex items-center justify-between gap-2 px-2 pb-2">
+            <span className="px-1 font-mono text-xs text-text-3 max-sm:hidden">
+              Enter to send · Shift+Enter for a new line
+            </span>
+            <Button
+              type="button"
+              size="icon"
+              className="size-7 rounded-[5px]"
+              onClick={submit}
+              disabled={streaming || ending || !draft.trim()}
+              aria-label="Send answer"
+            >
+              <ArrowUp />
+            </Button>
+          </div>
         </div>
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs text-muted-foreground">
@@ -219,18 +229,39 @@ export function InterviewChat({ sessionId, initialMessages }: Props) {
   );
 }
 
-function Bubble({ role, text }: { role: "user" | "assistant"; text: string }) {
+// Transcript-style turn: a mono speaker label over the text. The candidate's
+// turns sit in a quiet tinted block so the eye can skim question vs answer.
+function Turn({
+  role,
+  text,
+  live = false,
+}: {
+  role: "user" | "assistant";
+  text: string;
+  live?: boolean;
+}) {
   const isUser = role === "user";
   return (
-    <div className={isUser ? "flex justify-end" : "flex justify-start"}>
+    <div className="flex flex-col gap-1.5">
+      <span
+        className={`text-micro ${isUser ? "text-primary" : "text-text-3"}`}
+      >
+        {isUser ? "You" : "Interviewer"}
+      </span>
       <div
         className={
           isUser
-            ? "max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-sm whitespace-pre-wrap text-primary-foreground"
-            : "max-w-[85%] rounded-2xl rounded-bl-sm border bg-background px-4 py-2.5 text-sm whitespace-pre-wrap"
+            ? "rounded-md border border-primary/15 bg-primary/8 px-3 py-2.5 text-sm leading-relaxed whitespace-pre-wrap"
+            : "max-w-[72ch] text-sm leading-relaxed whitespace-pre-wrap"
         }
       >
         {text}
+        {live ? (
+          <span
+            aria-hidden
+            className="ml-0.5 inline-block h-3.5 w-[2px] translate-y-0.5 animate-pulse bg-primary"
+          />
+        ) : null}
       </div>
     </div>
   );

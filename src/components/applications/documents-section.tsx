@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useId, useState } from "react";
-import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -42,10 +42,10 @@ export function DocumentsSection({
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold">Documents</h2>
-          <p className="text-sm text-muted-foreground">
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-sm font-semibold">Documents</h2>
+          <p className="max-w-xl text-sm text-muted-foreground">
             Notes, call summaries, and pasted transcripts. All of it feeds the
             interviewer — transcripts get the heaviest weighting.
           </p>
@@ -58,7 +58,7 @@ export function DocumentsSection({
       </div>
 
       {adding ? (
-        <div className="rounded-xl border bg-card p-5 shadow-sm">
+        <div className="rounded-lg border bg-card p-4">
           <DocumentForm
             applicationId={applicationId}
             onDone={() => setAdding(false)}
@@ -67,12 +67,12 @@ export function DocumentsSection({
       ) : null}
 
       {documents.length === 0 && !adding ? (
-        <p className="rounded-xl border border-dashed bg-card/40 px-5 py-8 text-center text-sm text-muted-foreground">
+        <p className="rounded-lg border border-dashed bg-surface-0/40 px-4 py-6 text-center text-sm text-muted-foreground">
           No documents yet. Paste a recruiter-call transcript or drop in your
           research notes.
         </p>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="divide-y divide-border/70 overflow-hidden rounded-lg border bg-card">
           {documents.map((document) => (
             <DocumentRowItem key={document.id} document={document} />
           ))}
@@ -84,10 +84,13 @@ export function DocumentsSection({
 
 function DocumentRowItem({ document }: { document: DocumentRow }) {
   const [editing, setEditing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const isLong =
+    document.content.length > 320 || document.content.split("\n").length > 4;
 
   if (editing) {
     return (
-      <li className="rounded-xl border bg-card p-5 shadow-sm">
+      <li className="bg-surface-0/40 p-4">
         <DocumentForm
           applicationId={document.application_id}
           document={document}
@@ -98,15 +101,15 @@ function DocumentRowItem({ document }: { document: DocumentRow }) {
   }
 
   return (
-    <li className="flex flex-col gap-2 rounded-xl border bg-card p-5 shadow-sm">
+    <li className="flex flex-col gap-2 px-4 py-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <Badge variant={typeVariant(document.type)}>
             {typeLabel(document.type)}
           </Badge>
-          <span className="font-medium">{document.title}</span>
+          <span className="truncate text-sm font-medium">{document.title}</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
             <Pencil /> Edit
           </Button>
@@ -122,6 +125,7 @@ function DocumentRowItem({ document }: { document: DocumentRow }) {
               size="icon"
               type="submit"
               aria-label="Delete document"
+              className="size-7 text-muted-foreground hover:text-destructive"
               onClick={(e) => {
                 if (!confirm("Delete this document?")) e.preventDefault();
               }}
@@ -131,9 +135,25 @@ function DocumentRowItem({ document }: { document: DocumentRow }) {
           </form>
         </div>
       </div>
-      <p className="max-h-48 overflow-y-auto text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
+      <p
+        className={`text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground ${
+          expanded ? "" : "line-clamp-3"
+        }`}
+      >
         {document.content}
       </p>
+      {isLong ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="inline-flex w-fit items-center gap-1 text-xs font-medium text-text-3 transition-colors hover:text-foreground"
+        >
+          <ChevronDown
+            className={`size-3 transition-transform duration-150 ${expanded ? "rotate-180" : ""}`}
+          />
+          {expanded ? "Show less" : "Show more"}
+        </button>
+      ) : null}
     </li>
   );
 }

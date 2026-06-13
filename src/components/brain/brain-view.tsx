@@ -21,17 +21,39 @@ import {
 } from "@/lib/brain/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/app/empty-state";
+import { PageHeader } from "@/components/app/page-header";
 import { MindMap } from "./mind-map";
 
 type Tab = "insights" | "map";
 
 const TYPE_META: Record<
   InsightType,
-  { label: string; variant: "destructive" | "success" | "warning"; icon: typeof Brain }
+  {
+    label: string;
+    variant: "destructive" | "success" | "warning";
+    rail: string;
+    icon: typeof Brain;
+  }
 > = {
-  weakness: { label: "Weakness", variant: "destructive", icon: AlertTriangle },
-  strength: { label: "Strength", variant: "success", icon: TrendingUp },
-  pattern: { label: "Pattern", variant: "warning", icon: Sparkles },
+  weakness: {
+    label: "Weakness",
+    variant: "destructive",
+    rail: "before:bg-destructive",
+    icon: AlertTriangle,
+  },
+  strength: {
+    label: "Strength",
+    variant: "success",
+    rail: "before:bg-success",
+    icon: TrendingUp,
+  },
+  pattern: {
+    label: "Pattern",
+    variant: "warning",
+    rail: "before:bg-warning",
+    icon: Sparkles,
+  },
 };
 
 function evidenceSummary(insight: Insight): string {
@@ -83,36 +105,28 @@ export function BrainView({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Your brain</h1>
-          <p className="text-sm text-muted-foreground">
-            Patterns across every application — what you&apos;re strong at, what
-            keeps tripping you up, and where it recurs.
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={refresh}
-          disabled={pending}
-        >
-          {pending ? (
-            <>
-              <Loader2 className="animate-spin" /> Refreshing…
-            </>
-          ) : (
-            <>
-              <RefreshCw /> Refresh
-            </>
-          )}
-        </Button>
-      </div>
+      <PageHeader
+        title="Your brain"
+        description="Patterns across every application — what you're strong at, what keeps tripping you up, and where it recurs."
+        actions={
+          <Button variant="outline" size="sm" onClick={refresh} disabled={pending}>
+            {pending ? (
+              <>
+                <Loader2 className="animate-spin" /> Refreshing…
+              </>
+            ) : (
+              <>
+                <RefreshCw /> Refresh
+              </>
+            )}
+          </Button>
+        }
+      />
 
       <div
         role="tablist"
         aria-label="Brain view"
-        className="inline-flex w-fit gap-1 rounded-lg border bg-card/60 p-1"
+        className="inline-flex h-8 w-fit items-center gap-0.5 rounded-md border bg-surface-0/60 p-0.5"
       >
         <TabButton
           active={tab === "insights"}
@@ -131,19 +145,13 @@ export function BrainView({
       {tab === "map" ? (
         <MindMap data={graph} />
       ) : sorted.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed bg-card/40 px-6 py-12 text-center">
-          <Brain className="size-6 text-muted-foreground" aria-hidden />
-          <div className="flex flex-col gap-1">
-            <p className="font-medium">No insights yet</p>
-            <p className="max-w-md text-sm text-muted-foreground">
-              Run a few practice sessions across your applications, or log notes
-              from a real round. Once there&apos;s enough signal, the brain
-              surfaces cross-company patterns here.
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          icon={Brain}
+          title="No insights yet"
+          description="Run a few practice sessions across your applications, or log notes from a real round. Once there's enough signal, the brain surfaces cross-company patterns here."
+        />
       ) : (
-        <div className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-2.5">
           {sorted.map((insight) => {
             const meta = TYPE_META[insight.type as InsightType] ?? TYPE_META.pattern;
             const Icon = meta.icon;
@@ -151,31 +159,53 @@ export function BrainView({
               ? competencyNames[insight.competency_id]
               : null;
             return (
-              <div
+              <li
                 key={insight.id}
-                className="flex flex-col gap-3 rounded-xl border bg-card p-5 shadow-sm"
+                className={`relative flex flex-col gap-2.5 overflow-hidden rounded-lg border bg-card p-4 pl-5 before:absolute before:inset-y-0 before:left-0 before:w-0.5 ${meta.rail}`}
               >
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={meta.variant} className="gap-1">
-                    <Icon className="size-3" /> {meta.label}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Badge variant={meta.variant}>
+                    <Icon /> {meta.label}
                   </Badge>
                   {competency ? (
                     <Badge variant="outline">{competency}</Badge>
                   ) : null}
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    {Math.round(insight.confidence * 100)}% confidence
+                  <span
+                    className="ml-auto flex items-center gap-1.5"
+                    title={`${Math.round(insight.confidence * 100)}% confidence`}
+                  >
+                    <ConfidenceMeter value={insight.confidence} />
+                    <span className="font-mono text-xs tabular-nums text-text-3">
+                      {Math.round(insight.confidence * 100)}%
+                    </span>
                   </span>
                 </div>
                 <p className="text-sm leading-relaxed">{insight.summary}</p>
-                <p className="text-xs text-muted-foreground">
-                  Based on {evidenceSummary(insight)}
+                <p className="font-mono text-xs text-text-3">
+                  {evidenceSummary(insight)}
                 </p>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
     </div>
+  );
+}
+
+function ConfidenceMeter({ value }: { value: number }) {
+  const filled = Math.round(value * 5);
+  return (
+    <span className="flex items-center gap-px" aria-hidden>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <span
+          key={n}
+          className={`h-2.5 w-1 rounded-[1px] ${
+            n <= filled ? "bg-primary/70" : "bg-surface-3"
+          }`}
+        />
+      ))}
+    </span>
   );
 }
 
@@ -196,9 +226,9 @@ function TabButton({
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+      className={`inline-flex h-full items-center gap-1.5 rounded-[5px] px-2.5 text-sm font-medium transition-colors duration-150 ${
         active
-          ? "bg-background text-foreground shadow-sm"
+          ? "bg-surface-2 text-foreground"
           : "text-muted-foreground hover:text-foreground"
       }`}
     >

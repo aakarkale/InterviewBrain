@@ -58,16 +58,16 @@ export default async function SessionPage({
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <Link
         href={`/applications/${application.id}`}
         className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
-        <ArrowLeft className="size-4" /> {application.company_name}
+        <ArrowLeft className="size-3.5" /> {application.company_name}
       </Link>
 
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-xl font-semibold tracking-tight">
+        <h1 className="text-lg font-semibold tracking-[-0.01em]">
           {application.company_name} mock
         </h1>
         <Badge variant="secondary">{interviewLabel(session.interview_type)}</Badge>
