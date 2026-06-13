@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 import { Starburst } from "./starburst";
-import { MiniMap } from "./mini-map";
+import { LandingGraph } from "./landing-graph";
 import { useLandingMotion } from "./use-landing-motion";
 
 const LOOP_STEPS = [
@@ -251,7 +251,7 @@ export function Landing() {
               </blockquote>
             </div>
             <div data-reveal>
-              <MiniMap />
+              <LandingGraph />
             </div>
           </div>
         </section>

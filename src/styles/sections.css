@@ -141,15 +141,18 @@ html.lenis body {
   }
 }
 
-/* ---- landing buttons --------------------------------------- */
+/* ---- landing buttons ---------------------------------------
+   Premium CTAs: depth gradient + inset highlight, a sheen that
+   sweeps on hover, a lift, and a sliding arrow on the large ones. */
 
 .l-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 36px;
-  padding: 0 16px;
+  height: 38px;
+  padding: 0 18px;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   font-size: 14px;
@@ -157,22 +160,61 @@ html.lenis body {
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
+  overflow: hidden;
   transition:
     background-color var(--dur-2) var(--ease-out),
     border-color var(--dur-2) var(--ease-out),
     box-shadow var(--dur-2) var(--ease-out),
-    transform var(--dur-2) var(--ease-out),
+    transform var(--dur-2) var(--ease-snap),
     color var(--dur-1) var(--ease-out);
 }
 
+.l-btn:active {
+  transform: translateY(0) scale(0.98);
+  transition-duration: var(--dur-1);
+}
+
+/* sheen sweep (sits above the fill, below the label) */
+.l-btn-solid::before,
+.l-btn-outline::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 25%,
+    color-mix(in oklab, white 30%, transparent) 50%,
+    transparent 75%
+  );
+  transform: translateX(-130%);
+  transition: transform 0.75s var(--ease-out);
+}
+
+.l-btn-solid:hover::before,
+.l-btn-outline:hover::before {
+  transform: translateX(130%);
+}
+
 .l-btn-solid {
-  background: var(--accent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--accent) 88%, white),
+    var(--accent)
+  );
   color: var(--accent-contrast);
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in oklab, white 24%, transparent),
+    0 6px 18px -8px var(--glow),
+    0 1px 2px oklch(0 0 0 / 0.3);
 }
 
 .l-btn-solid:hover {
-  box-shadow: var(--shadow-glow);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in oklab, white 32%, transparent),
+    0 14px 32px -10px var(--glow),
+    0 0 0 1px var(--border-accent);
 }
 
 .l-btn-ghost {
@@ -181,35 +223,44 @@ html.lenis body {
 
 .l-btn-ghost:hover {
   color: var(--text-1);
-  background: var(--surface-1);
+  background: color-mix(in oklab, var(--surface-2) 70%, transparent);
 }
 
 .l-btn-outline {
   color: var(--text-1);
   border-color: var(--border-strong);
+  background: color-mix(in oklab, var(--surface-1) 55%, transparent);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.18);
 }
 
 .l-btn-outline:hover {
+  transform: translateY(-2px);
   border-color: var(--border-accent);
   background: var(--accent-faint);
+  box-shadow: 0 12px 26px -12px var(--glow);
 }
 
 .l-btn-lg {
-  height: 46px;
-  padding: 0 24px;
+  height: 50px;
+  padding: 0 26px;
   font-size: 15px;
+  border-radius: var(--radius-lg);
 }
 
-[data-theme="light"] .l-btn-solid,
-[data-theme="light"] .l-btn-outline {
-  border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow-1);
+/* sliding arrow on the large primary/secondary CTAs */
+.l-btn-lg.l-btn-solid::after,
+.l-btn-lg.l-btn-outline::after {
+  content: "→";
+  font-size: 17px;
+  line-height: 1;
+  margin-left: -1px;
+  transition: transform var(--dur-2) var(--ease-snap);
 }
 
-[data-theme="light"] .l-btn-solid:hover,
-[data-theme="light"] .l-btn-outline:hover {
-  box-shadow: var(--shadow-2);
-  transform: translate(-1px, -1px);
+.l-btn-lg.l-btn-solid:hover::after,
+.l-btn-lg.l-btn-outline:hover::after {
+  transform: translateX(5px);
 }
 
 /* ---- hero -------------------------------------------------- */
@@ -713,4 +764,138 @@ html.lenis body {
 .l-footer-links {
   display: flex;
   gap: 20px;
+}
+
+/* ---- ambient polish ---------------------------------------- */
+
+/* faint dotted texture behind the hero, fading out down the page */
+.landing {
+  position: relative;
+  isolation: isolate;
+}
+
+.landing::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in oklab, var(--text-1) 5%, transparent) 1px,
+    transparent 0
+  );
+  background-size: 32px 32px;
+  -webkit-mask-image: linear-gradient(to bottom, black, transparent 55%);
+  mask-image: linear-gradient(to bottom, black, transparent 55%);
+}
+
+/* soft accent glow behind the hero copy, balancing the starburst */
+.l-hero::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  top: -140px;
+  left: -12%;
+  width: 65%;
+  height: 560px;
+  background: radial-gradient(
+    50% 50% at 42% 42%,
+    color-mix(in oklab, var(--accent) 16%, transparent),
+    transparent 70%
+  );
+}
+
+/* ---- interactive landing graph ----------------------------- */
+
+.l-graph-panel {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      120% 70% at 50% 0%,
+      color-mix(in oklab, var(--accent) 9%, transparent),
+      transparent 60%
+    ),
+    var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 14px 14px 12px;
+  box-shadow: var(--shadow-2);
+}
+
+[data-theme="light"] .l-graph-panel {
+  border-color: var(--border-strong);
+}
+
+.l-graph-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 6px 12px;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  color: var(--text-2);
+}
+
+.l-graph-dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: var(--danger);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--danger) 18%, transparent);
+  animation: glow-breathe 3s var(--ease-in-out) infinite;
+}
+
+.l-graph-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: none;
+  cursor: grab;
+}
+
+.l-graph-svg:active {
+  cursor: grabbing;
+}
+
+.l-graph-node {
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.l-graph-label {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  paint-order: stroke;
+  stroke: var(--surface-0);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  user-select: none;
+  transition: fill 0.15s ease;
+}
+
+.l-graph-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 12px 6px 2px;
+}
+
+.l-graph-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.l-graph-key span {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
 }

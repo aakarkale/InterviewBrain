@@ -106,24 +106,6 @@ export function useLandingMotion(rootRef: RefObject<HTMLElement | null>) {
             }),
         });
 
-        // -- mind-map preview: edges draw in, nodes pop
-        gsap.to('[data-draw="map"]', {
-          strokeDashoffset: 0,
-          duration: 1.1,
-          ease: "power2.inOut",
-          stagger: 0.12,
-          scrollTrigger: { trigger: "[data-map]", start: "top 80%", once: true },
-        });
-        gsap.from("[data-map] [data-node]", {
-          scale: 0,
-          autoAlpha: 0,
-          transformOrigin: "50% 50%",
-          duration: 0.5,
-          ease: "back.out(2)",
-          stagger: 0.07,
-          scrollTrigger: { trigger: "[data-map]", start: "top 80%", once: true },
-        });
-
         // -- nav chrome after leaving the very top
         const nav = root.querySelector<HTMLElement>("[data-nav]");
         if (nav) {
