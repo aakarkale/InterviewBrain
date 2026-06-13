@@ -61,6 +61,27 @@ function edgeStroke(state: GraphState, kind: SimLink["kind"]): string {
   return "var(--color-border-strong)";
 }
 
+// Glow tone per node, reusing the semantic colors. Kept lighter than the
+// landing graph so dense competency clusters don't bloom into each other.
+type Tone = "company" | "story" | "weak" | "strength" | "neutral";
+
+function nodeTone(n: GraphNode): Tone {
+  if (n.kind === "company") return "company";
+  if (n.kind === "story") return "story";
+  if (n.state === "weakness") return "weak";
+  if (n.state === "strength") return "strength";
+  return "neutral";
+}
+
+const TONES: Tone[] = ["company", "story", "weak", "strength", "neutral"];
+const TONE_COLOR: Record<Tone, string> = {
+  company: "var(--color-primary)",
+  story: "var(--accent-2)",
+  weak: "var(--color-destructive)",
+  strength: "var(--color-success)",
+  neutral: "var(--color-muted-foreground)",
+};
+
 const linkId = (v: SimLink["source"]) =>
   typeof v === "object" ? (v as SimNode).id : String(v);
 
@@ -429,6 +450,18 @@ export function MindMap({ data }: { data: GraphData }) {
           onPointerCancel={onCanvasPointerUp}
           onClick={onCanvasClick}
         >
+          <defs>
+            {TONES.map((tone) => (
+              <radialGradient key={tone} id={`mm-glow-${tone}`}>
+                <stop
+                  offset="0%"
+                  stopColor={TONE_COLOR[tone]}
+                  stopOpacity={tone === "weak" ? 0.3 : 0.22}
+                />
+                <stop offset="100%" stopColor={TONE_COLOR[tone]} stopOpacity={0} />
+              </radialGradient>
+            ))}
+          </defs>
           <g ref={sceneRef}>
             <g>
               {graph.links.map((l, i) => {
@@ -444,15 +477,15 @@ export function MindMap({ data }: { data: GraphData }) {
                       else edgeRefs.current.delete(i);
                     }}
                     stroke={edgeStroke(l.state, l.kind)}
-                    strokeWidth={l.kind === "pattern" ? 1 + l.strength * 1.4 : 1}
+                    strokeWidth={l.kind === "pattern" ? 0.75 + l.strength * 1.1 : 1}
                     strokeLinecap="round"
-                    strokeDasharray={l.kind === "tagged" ? "2 4" : undefined}
+                    strokeDasharray={l.kind === "tagged" ? "2 5" : undefined}
                     style={{
                       opacity: dim
-                        ? 0.04
+                        ? 0.035
                         : lit
-                          ? 0.9
-                          : 0.22 + l.strength * 0.3,
+                          ? 0.8
+                          : 0.16 + l.strength * 0.26,
                       transition: "opacity 150ms ease",
                     }}
                   />
@@ -495,22 +528,36 @@ export function MindMap({ data }: { data: GraphData }) {
                       }
                     }}
                   >
-                    {/* halo ring on focus/selection */}
+                    {/* soft halo (radial gradient; lighter than the landing) */}
                     <circle
-                      r={r + 3.5}
-                      fill="none"
-                      stroke={nodeFill(n)}
-                      strokeWidth={1.25}
+                      r={hub ? r + 11 : r + 7}
+                      fill={`url(#mm-glow-${nodeTone(n)})`}
                       style={{
-                        opacity: lit ? 0.55 : 0,
+                        opacity: lit ? 1 : 0.8,
                         transition: "opacity 150ms ease",
                       }}
                     />
+                    {/* translucent orb with a thin luminous ring */}
                     <circle
                       r={r}
                       fill={nodeFill(n)}
+                      fillOpacity={0.2}
+                      stroke={nodeFill(n)}
+                      strokeWidth={1.4}
+                      strokeOpacity={lit ? 1 : 0.72}
                       style={{
-                        transform: lit ? "scale(1.12)" : "scale(1)",
+                        transform: lit ? "scale(1.1)" : "scale(1)",
+                        transition:
+                          "transform 150ms ease, stroke-opacity 150ms ease",
+                      }}
+                    />
+                    {/* inner core for depth */}
+                    <circle
+                      r={Math.max(2, r * 0.4)}
+                      fill={nodeFill(n)}
+                      fillOpacity={0.5}
+                      style={{
+                        transform: lit ? "scale(1.1)" : "scale(1)",
                         transition: "transform 150ms ease",
                       }}
                     />
