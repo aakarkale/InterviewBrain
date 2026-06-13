@@ -17,7 +17,7 @@ import {
 // one weak competency ("Metrics") wired to three companies — the cross-company
 // pattern the product is built to surface — plus a strength and a story. It
 // drifts gently, you can drag the nodes, and hovering traces the connections.
-// Not the visitor's data (they're logged out); a representative example.
+// Rendered as soft glowing orbs with hairline links: restrained, not gaudy.
 
 type Kind = "company" | "weak" | "strong" | "story";
 
@@ -32,12 +32,12 @@ type Link = SimulationLinkDatum<Node> & {
 };
 
 const NODES: Node[] = [
-  { id: "metrics", label: "Metrics", kind: "weak", r: 26 },
-  { id: "stripe", label: "Stripe", kind: "company", r: 17 },
-  { id: "figma", label: "Figma", kind: "company", r: 17 },
-  { id: "linear", label: "Linear", kind: "company", r: 17 },
+  { id: "metrics", label: "Metrics", kind: "weak", r: 23 },
+  { id: "stripe", label: "Stripe", kind: "company", r: 16 },
+  { id: "figma", label: "Figma", kind: "company", r: 16 },
+  { id: "linear", label: "Linear", kind: "company", r: 16 },
   { id: "ownership", label: "Ownership", kind: "strong", r: 13 },
-  { id: "story", label: "Turnaround story", kind: "story", r: 12 },
+  { id: "story", label: "Turnaround story", kind: "story", r: 11 },
 ];
 
 const LINKS: Link[] = [
@@ -58,17 +58,26 @@ const NEIGHBORS: Record<string, Set<string>> = (() => {
   return m;
 })();
 
-function fill(kind: Kind): string {
+const KINDS: Kind[] = ["company", "weak", "strong", "story"];
+
+// Base hue per role. The orb look (translucent fill + thin ring + soft halo)
+// keeps these from reading as loud flat disks.
+function hue(kind: Kind): string {
   if (kind === "company") return "var(--accent)";
   if (kind === "weak") return "var(--danger)";
   if (kind === "strong") return "var(--ok)";
   return "var(--accent-2)";
 }
 
-function stroke(kind: Link["kind"]): string {
-  if (kind === "weak") return "var(--danger)";
-  if (kind === "strong") return "var(--ok)";
-  return "var(--accent-2)";
+// Edges sit back: the role colour softened toward the line colour, hairline.
+function edgeColor(kind: Link["kind"]): string {
+  const base =
+    kind === "weak"
+      ? "var(--danger)"
+      : kind === "strong"
+        ? "var(--ok)"
+        : "var(--accent-2)";
+  return `color-mix(in oklab, ${base} 58%, var(--border-strong))`;
 }
 
 const CAPTION: Record<string, string> = {
@@ -122,20 +131,20 @@ export function LandingGraph() {
         "link",
         forceLink<Node, Link>(links)
           .id((d) => d.id)
-          .distance((l) => (l.kind === "tag" ? 70 : 92))
+          .distance((l) => (l.kind === "tag" ? 84 : 106))
           .strength(0.5)
       )
-      .force("charge", forceManyBody().strength(-440))
+      .force("charge", forceManyBody().strength(-520))
       .force("x", forceX(0).strength(0.08))
       .force("y", forceY(0).strength(0.08))
       .force(
         "collide",
-        forceCollide<Node>().radius((n) => n.r + 14)
+        forceCollide<Node>().radius((n) => n.r + 16)
       )
       .velocityDecay(0.5)
       .on("tick", paint);
 
-    for (let i = 0; i < 120; i++) sim.tick();
+    for (let i = 0; i < 130; i++) sim.tick();
     paint();
 
     if (reduce) {
@@ -157,7 +166,6 @@ export function LandingGraph() {
     e.currentTarget.setPointerCapture(e.pointerId);
     const toLocal = (cx: number, cy: number) => {
       const r = svg.getBoundingClientRect();
-      // viewBox is centered at 0,0 spanning 360 wide
       const scale = 360 / r.width;
       return {
         x: (cx - r.left - r.width / 2) * scale,
@@ -181,14 +189,15 @@ export function LandingGraph() {
     window.addEventListener("pointerup", up);
   }
 
-  const dim = (id: string) =>
-    hovered !== null && !NEIGHBORS[hovered]?.has(id);
+  const dim = (id: string) => hovered !== null && !NEIGHBORS[hovered]?.has(id);
 
   return (
     <div className="l-graph-panel" data-graph>
       <div className="l-graph-head">
         <span className="l-graph-dot" aria-hidden />
-        <span>{hovered ? CAPTION[hovered] : "Metrics — weak across 3 companies"}</span>
+        <span>
+          {hovered ? CAPTION[hovered] : "Metrics — weak across 3 companies"}
+        </span>
       </div>
       <svg
         ref={svgRef}
@@ -197,67 +206,95 @@ export function LandingGraph() {
         role="img"
         aria-label="Interactive mind-map: a Metrics weakness linked to Stripe, Figma and Linear, plus an Ownership strength and a reusable story. Drag the nodes."
       >
-        <g>
-          {links.map((l, i) => (
-            <line
-              key={i}
-              ref={(el) => {
-                if (el) edgeRefs.current.set(i, el);
-                else edgeRefs.current.delete(i);
-              }}
-              stroke={stroke(l.kind)}
-              strokeWidth={l.kind === "weak" ? 2 : 1.5}
-              strokeLinecap="round"
-              strokeDasharray={l.kind === "tag" ? "2 5" : undefined}
-              style={{
-                opacity:
-                  hovered &&
-                  !(
-                    NEIGHBORS[hovered]?.has((l.source as Node).id) &&
-                    NEIGHBORS[hovered]?.has((l.target as Node).id)
-                  )
-                    ? 0.08
-                    : 0.55,
-                transition: "opacity 150ms ease",
-              }}
-            />
+        <defs>
+          {KINDS.map((k) => (
+            <radialGradient key={k} id={`lg-glow-${k}`}>
+              <stop
+                offset="0%"
+                stopColor={hue(k)}
+                stopOpacity={k === "weak" ? 0.5 : 0.36}
+              />
+              <stop offset="100%" stopColor={hue(k)} stopOpacity={0} />
+            </radialGradient>
           ))}
-        </g>
+        </defs>
+
         <g>
-          {nodes.map((n) => (
-            <g
-              key={n.id}
-              ref={(el) => {
-                if (el) nodeRefs.current.set(n.id, el);
-                else nodeRefs.current.delete(n.id);
-              }}
-              className="l-graph-node"
-              style={{ opacity: dim(n.id) ? 0.18 : 1 }}
-              onPointerEnter={() => setHovered(n.id)}
-              onPointerLeave={() => setHovered((h) => (h === n.id ? null : h))}
-              onPointerDown={(e) => onPointerDown(e, n)}
-            >
-              <circle
-                r={n.r + 4}
-                fill="none"
-                stroke={fill(n.kind)}
-                strokeWidth={1.25}
+          {links.map((l, i) => {
+            const sId = (l.source as Node).id;
+            const tId = (l.target as Node).id;
+            const lit = hovered !== null && (sId === hovered || tId === hovered);
+            const dimmed = hovered !== null && !lit;
+            return (
+              <line
+                key={i}
+                ref={(el) => {
+                  if (el) edgeRefs.current.set(i, el);
+                  else edgeRefs.current.delete(i);
+                }}
+                stroke={edgeColor(l.kind)}
+                strokeWidth={l.kind === "weak" ? 1.25 : 1}
+                strokeLinecap="round"
+                strokeDasharray={l.kind === "tag" ? "1.5 5" : undefined}
                 style={{
-                  opacity: hovered === n.id ? 0.5 : 0,
+                  opacity: dimmed ? 0.05 : lit ? 0.85 : 0.4,
                   transition: "opacity 150ms ease",
                 }}
               />
-              <circle r={n.r} fill={fill(n.kind)} fillOpacity={0.92} />
-              <text
-                y={n.r + 13}
-                textAnchor="middle"
-                className="l-graph-label"
-                style={{ fill: hovered === n.id ? "var(--text-1)" : "var(--text-2)" }}
+            );
+          })}
+        </g>
+        <g>
+          {nodes.map((n) => {
+            const c = hue(n.kind);
+            return (
+              <g
+                key={n.id}
+                ref={(el) => {
+                  if (el) nodeRefs.current.set(n.id, el);
+                  else nodeRefs.current.delete(n.id);
+                }}
+                className="l-graph-node"
+                style={{ opacity: dim(n.id) ? 0.16 : 1 }}
+                onPointerEnter={() => setHovered(n.id)}
+                onPointerLeave={() => setHovered((h) => (h === n.id ? null : h))}
+                onPointerDown={(e) => onPointerDown(e, n)}
               >
-                {n.label}
-              </text>
-            </g>
-          ))}
+                {/* soft halo */}
+                <circle
+                  r={n.r + (n.kind === "weak" ? 20 : 13)}
+                  fill={`url(#lg-glow-${n.kind})`}
+                  style={{
+                    opacity: hovered === n.id ? 1.25 : 1,
+                    transition: "opacity 150ms ease",
+                  }}
+                />
+                {/* translucent orb with a thin luminous ring */}
+                <circle
+                  r={n.r}
+                  fill={c}
+                  fillOpacity={0.18}
+                  stroke={c}
+                  strokeWidth={1.5}
+                  strokeOpacity={hovered === n.id ? 1 : 0.75}
+                  style={{ transition: "stroke-opacity 150ms ease" }}
+                />
+                {/* inner core for a touch of depth */}
+                <circle r={n.r * 0.42} fill={c} fillOpacity={0.5} />
+                <text
+                  y={n.r + 14}
+                  textAnchor="middle"
+                  className="l-graph-label"
+                  style={{
+                    fill:
+                      hovered === n.id ? "var(--text-1)" : "var(--text-3)",
+                  }}
+                >
+                  {n.label}
+                </text>
+              </g>
+            );
+          })}
         </g>
       </svg>
       <div className="l-graph-legend" aria-hidden>
@@ -267,10 +304,10 @@ export function LandingGraph() {
             ["Weak spot", "var(--danger)"],
             ["Strength", "var(--ok)"],
           ] as const
-        ).map(([label, c]) => (
+        ).map(([label, color]) => (
           <Fragment key={label}>
             <span className="l-graph-key">
-              <span style={{ background: c }} />
+              <span style={{ background: color }} />
               {label}
             </span>
           </Fragment>
