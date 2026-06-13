@@ -28,3 +28,32 @@ export function insightEvidence(insight: Insight): EvidenceRef[] {
   }
   return refs;
 }
+
+// ---- Mind-map graph (SPEC: derived at render time, never stored) ----
+
+export type GraphNodeKind = "company" | "competency" | "story";
+export type GraphState = "weakness" | "strength" | "neutral";
+
+export type GraphNode = {
+  id: string;
+  kind: GraphNodeKind;
+  label: string;
+  state: GraphState;
+  // Relative importance, drives node size (e.g. a competency weak across
+  // several companies is bigger).
+  weight: number;
+  detail: string | null;
+};
+
+export type GraphEdgeKind = "scored" | "tagged" | "pattern";
+
+export type GraphEdge = {
+  source: string;
+  target: string;
+  kind: GraphEdgeKind;
+  state: GraphState;
+  // 0..1 emphasis — pattern links from high-confidence insights draw boldest.
+  strength: number;
+};
+
+export type GraphData = { nodes: GraphNode[]; edges: GraphEdge[] };

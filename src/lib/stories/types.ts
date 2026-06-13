@@ -8,7 +8,8 @@ export type Story = Tables<"stories">;
 export type Competency = Tables<"competencies">;
 
 // competency_tags is stored as a jsonb array of competency id strings.
-export function storyTags(story: Story): string[] {
+// Only this field is read, so any row carrying it (incl. partial selects) works.
+export function storyTags(story: Pick<Story, "competency_tags">): string[] {
   return Array.isArray(story.competency_tags)
     ? (story.competency_tags as unknown[]).filter(
         (t): t is string => typeof t === "string"
