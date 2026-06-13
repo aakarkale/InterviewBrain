@@ -53,10 +53,10 @@ export function RoundsSection({
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold">Rounds</h2>
-          <p className="text-sm text-muted-foreground">
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-sm font-semibold">Rounds</h2>
+          <p className="max-w-xl text-sm text-muted-foreground">
             Track each interview and what actually happened — real rounds teach
             the brain too.
           </p>
@@ -69,7 +69,7 @@ export function RoundsSection({
       </div>
 
       {adding ? (
-        <div className="rounded-xl border bg-card p-5 shadow-sm">
+        <div className="rounded-lg border bg-card p-4">
           <RoundForm
             applicationId={applicationId}
             defaultNumber={nextNumber}
@@ -79,11 +79,11 @@ export function RoundsSection({
       ) : null}
 
       {rounds.length === 0 && !adding ? (
-        <p className="rounded-xl border border-dashed bg-card/40 px-5 py-8 text-center text-sm text-muted-foreground">
+        <p className="rounded-lg border border-dashed bg-surface-0/40 px-4 py-6 text-center text-sm text-muted-foreground">
           No rounds yet. Add the recruiter screen or your next scheduled round.
         </p>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="divide-y divide-border/70 overflow-hidden rounded-lg border bg-card">
           {rounds.map((round) => (
             <RoundRow key={round.id} round={round} />
           ))}
@@ -98,7 +98,7 @@ function RoundRow({ round }: { round: Round }) {
 
   if (editing) {
     return (
-      <li className="rounded-xl border bg-card p-5 shadow-sm">
+      <li className="bg-surface-0/40 p-4">
         <RoundForm
           applicationId={round.application_id}
           round={round}
@@ -114,18 +114,20 @@ function RoundRow({ round }: { round: Round }) {
     .join(", ");
 
   return (
-    <li className="flex flex-col gap-2 rounded-xl border bg-card p-5 shadow-sm">
+    <li className="flex flex-col gap-2 px-4 py-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">Round {round.round_number}</Badge>
-          <span className="font-medium">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="font-mono text-xs text-text-3">
+            R{round.round_number}
+          </span>
+          <span className="text-sm font-medium">
             {roundTypeLabel(round.round_type)}
           </span>
           <Badge variant={outcomeVariant(round.outcome)}>
             {outcomeLabel(round.outcome)}
           </Badge>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
             <Pencil /> Edit
           </Button>
@@ -141,6 +143,7 @@ function RoundRow({ round }: { round: Round }) {
               size="icon"
               type="submit"
               aria-label="Delete round"
+              className="size-7 text-muted-foreground hover:text-destructive"
               onClick={(e) => {
                 if (!confirm("Delete this round?")) e.preventDefault();
               }}
@@ -152,11 +155,11 @@ function RoundRow({ round }: { round: Round }) {
       </div>
 
       {sub || round.scheduled_date ? (
-        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           {sub ? <span>{sub}</span> : null}
           {round.scheduled_date ? (
             <span className="inline-flex items-center gap-1">
-              <CalendarClock className="size-3.5" />
+              <CalendarClock className="size-3" />
               {round.scheduled_date}
             </span>
           ) : null}
@@ -164,7 +167,7 @@ function RoundRow({ round }: { round: Round }) {
       ) : null}
 
       {round.post_round_notes ? (
-        <p className="text-sm leading-relaxed whitespace-pre-wrap">
+        <p className="text-sm leading-relaxed whitespace-pre-wrap text-text-2">
           {round.post_round_notes}
         </p>
       ) : null}

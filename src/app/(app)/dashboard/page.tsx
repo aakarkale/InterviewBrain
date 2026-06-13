@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   AlertTriangle,
+  ArrowUpRight,
   CheckCircle2,
   FolderOpen,
-  Lightbulb,
   MessageSquareText,
   Plus,
   Sparkles,
@@ -12,24 +12,26 @@ import {
 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import { getApplications, type Application } from "@/lib/applications/queries";
 import {
+  getApplicationsOverview,
+  type ApplicationOverviewRow,
+} from "@/lib/applications/queries";
+import {
+  getMonthlySessionCount,
   getRecentSessions,
   type RecentSession,
 } from "@/lib/sessions/queries";
-import { getTopInsight } from "@/lib/brain/queries";
-import { MAX_ACTIVE_APPLICATIONS } from "@/lib/applications/constants";
-import { INTERVIEW_TYPES } from "@/lib/applications/constants";
+import { getActiveInsightCount, getTopInsight } from "@/lib/brain/queries";
+import {
+  MAX_ACTIVE_APPLICATIONS,
+  INTERVIEW_TYPES,
+} from "@/lib/applications/constants";
+import { MAX_SESSIONS_PER_MONTH } from "@/lib/sessions/constants";
 import type { Insight } from "@/lib/brain/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { EmptyState } from "@/components/app/empty-state";
+import { PageHeader } from "@/components/app/page-header";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -45,6 +47,8 @@ function sessionAverage(session: RecentSession): number | null {
   if (values.length === 0) return null;
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
+
+const count = (rel: { count: number }[]) => rel[0]?.count ?? 0;
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -62,72 +66,73 @@ export default async function DashboardPage() {
 
   const firstName = profile?.full_name?.split(/\s+/)[0];
 
-  const [applications, recentSessions, topInsight] = await Promise.all([
-    getApplications(),
-    getRecentSessions(5),
-    getTopInsight(),
-  ]);
+  const [applications, recentSessions, topInsight, monthlySessions, insightCount] =
+    await Promise.all([
+      getApplicationsOverview(),
+      getRecentSessions(5),
+      getTopInsight(),
+      getMonthlySessionCount(),
+      getActiveInsightCount(),
+    ]);
 
   const active = applications.filter((a) => !a.is_archived);
   const archived = applications.filter((a) => a.is_archived);
   const atCap = active.length >= MAX_ACTIVE_APPLICATIONS;
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {firstName ? `Welcome, ${firstName}` : "Welcome"}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Your applications, sessions, and insights live here.
-          </p>
-        </div>
-        {atCap ? (
-          <Button
-            variant="outline"
-            disabled
-            title={`Free plan is capped at ${MAX_ACTIVE_APPLICATIONS} active applications`}
-          >
-            <Plus /> New application
-          </Button>
-        ) : (
-          <Button asChild>
-            <Link href="/applications/new">
+    <div className="flex flex-col gap-7">
+      <PageHeader
+        title={firstName ? `Welcome back, ${firstName}` : "Welcome back"}
+        description="Your applications, practice sessions, and what the brain is noticing."
+        actions={
+          atCap ? (
+            <Button
+              variant="outline"
+              disabled
+              title={`Free plan is capped at ${MAX_ACTIVE_APPLICATIONS} active applications`}
+            >
               <Plus /> New application
-            </Link>
-          </Button>
-        )}
-      </div>
+            </Button>
+          ) : (
+            <Button asChild>
+              <Link href="/applications/new">
+                <Plus /> New application
+              </Link>
+            </Button>
+          )
+        }
+      />
 
-      <section className="flex flex-col gap-3">
-        <div className="flex items-baseline gap-2">
-          <h2 className="text-lg font-semibold">Applications</h2>
-          <span className="text-sm text-muted-foreground">
-            {active.length} of {MAX_ACTIVE_APPLICATIONS} active
-          </span>
-        </div>
+      <dl className="grid grid-cols-3 divide-x divide-border overflow-hidden rounded-lg border bg-surface-0/50">
+        <Stat
+          label="Active applications"
+          value={active.length}
+          max={MAX_ACTIVE_APPLICATIONS}
+        />
+        <Stat
+          label="Sessions this month"
+          value={monthlySessions}
+          max={MAX_SESSIONS_PER_MONTH}
+        />
+        <Stat label="Active insights" value={insightCount} />
+      </dl>
 
+      <section className="flex flex-col gap-3" aria-label="Applications">
         {applications.length === 0 ? (
-          <Card>
-            <CardHeader>
-              <FolderOpen className="size-5 text-primary" aria-hidden />
-              <CardTitle>No applications yet</CardTitle>
-              <CardDescription>
-                Create your first vault — paste a JD and your resume, and
-                you&apos;re ready to practice.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild>
+          <EmptyState
+            icon={FolderOpen}
+            title="No applications yet"
+            description="Create your first vault — paste a JD and your resume, and you're ready to practice."
+            action={
+              <Button asChild size="sm">
                 <Link href="/applications/new">
                   <Plus /> New application
                 </Link>
               </Button>
-            </CardContent>
-          </Card>
+            }
+          />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[...active, ...archived].map((app) => (
               <ApplicationCard key={app.id} app={app} />
             ))}
@@ -135,68 +140,70 @@ export default async function DashboardPage() {
         )}
       </section>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <MessageSquareText className="size-5 text-primary" aria-hidden />
-            <CardTitle>Recent sessions</CardTitle>
-            <CardDescription>
-              Mock interviews built from your actual materials.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {recentSessions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Run your first mock from an application to see sessions here.
-              </p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {recentSessions.map((s) => {
-                  const avg = sessionAverage(s);
-                  const done = s.status === "completed";
-                  return (
-                    <li key={s.id}>
-                      <Link
-                        href={`/sessions/${s.id}`}
-                        className="group flex items-center justify-between gap-3 rounded-lg border px-3 py-2 transition-colors hover:border-primary/40"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          {done ? (
-                            <CheckCircle2
-                              className="size-4 text-success"
-                              aria-hidden
-                            />
-                          ) : (
-                            <MessageSquareText
-                              className="size-4 text-primary"
-                              aria-hidden
-                            />
-                          )}
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium">
-                              {s.applications?.company_name ?? "Application"}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {interviewLabel(s.interview_type)}
-                              {done ? "" : " · in progress"}
-                            </span>
-                          </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <section
+          aria-label="Recent sessions"
+          className="flex flex-col overflow-hidden rounded-lg border bg-card"
+        >
+          <div className="flex items-center justify-between gap-2 border-b px-4 py-2.5">
+            <h2 className="text-micro text-muted-foreground">Recent sessions</h2>
+            <MessageSquareText className="size-3.5 text-text-3" aria-hidden />
+          </div>
+          {recentSessions.length === 0 ? (
+            <p className="px-4 py-6 text-sm text-muted-foreground">
+              Run your first mock from an application — feedback lands here.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border/70">
+              {recentSessions.map((s) => {
+                const avg = sessionAverage(s);
+                const done = s.status === "completed";
+                return (
+                  <li key={s.id}>
+                    <Link
+                      href={`/sessions/${s.id}`}
+                      className="flex items-center justify-between gap-3 px-4 py-2.5 transition-colors duration-150 hover:bg-surface-2/50"
+                    >
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        {done ? (
+                          <CheckCircle2
+                            className="size-3.5 shrink-0 text-success"
+                            aria-hidden
+                          />
+                        ) : (
+                          <MessageSquareText
+                            className="size-3.5 shrink-0 text-primary"
+                            aria-hidden
+                          />
+                        )}
+                        <div className="flex min-w-0 flex-col">
+                          <span className="truncate text-sm font-medium">
+                            {s.applications?.company_name ?? "Application"}
+                          </span>
+                          <span className="truncate text-xs text-muted-foreground">
+                            {interviewLabel(s.interview_type)}
+                            {done ? "" : " · in progress"}
+                          </span>
                         </div>
-                        {done && avg !== null ? (
-                          <Badge variant={avg <= 2 ? "destructive" : "secondary"}>
-                            {avg.toFixed(1)}/5
-                          </Badge>
-                        ) : !done ? (
-                          <Badge variant="warning">Resume</Badge>
-                        ) : null}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+                      </div>
+                      {done && avg !== null ? (
+                        <span
+                          className={`font-mono text-xs tabular-nums ${
+                            avg <= 2 ? "text-destructive" : "text-muted-foreground"
+                          }`}
+                        >
+                          {avg.toFixed(1)}/5
+                        </span>
+                      ) : !done ? (
+                        <Badge variant="warning">Resume</Badge>
+                      ) : null}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
 
         <TopInsightCard insight={topInsight} />
       </div>
@@ -204,60 +211,106 @@ export default async function DashboardPage() {
   );
 }
 
-function TopInsightCard({ insight }: { insight: Insight | null }) {
-  const Icon = insight?.type === "weakness" ? AlertTriangle : Sparkles;
+function Stat({
+  label,
+  value,
+  max,
+}: {
+  label: string;
+  value: number;
+  max?: number;
+}) {
   return (
-    <Card>
-      <CardHeader>
-        <Lightbulb className="size-5 text-primary" aria-hidden />
-        <CardTitle>Top insight</CardTitle>
-        <CardDescription>
-          What the brain notices across your applications.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {insight ? (
-          <div className="flex flex-col gap-3">
-            <div className="flex items-start gap-2">
-              <Icon
-                className="mt-0.5 size-4 shrink-0 text-warning"
-                aria-hidden
-              />
-              <p className="text-sm leading-relaxed">{insight.summary}</p>
-            </div>
-            <Link
-              href="/brain"
-              className="inline-flex w-fit items-center gap-1 text-sm font-medium text-primary transition-colors hover:underline"
-            >
-              <TrendingUp className="size-4" /> See all insights
-            </Link>
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Insights appear once the brain has a few sessions to learn from.
-          </p>
-        )}
-      </CardContent>
-    </Card>
+    <div className="flex flex-col gap-1 px-4 py-3">
+      <dt className="text-micro text-muted-foreground">{label}</dt>
+      <dd className="font-mono text-lg leading-none font-medium tabular-nums">
+        {value}
+        {max !== undefined ? (
+          <span className="text-text-3"> / {max}</span>
+        ) : null}
+      </dd>
+    </div>
   );
 }
 
-function ApplicationCard({ app }: { app: Application }) {
+function TopInsightCard({ insight }: { insight: Insight | null }) {
+  const isWeakness = insight?.type === "weakness";
+  const Icon = isWeakness ? AlertTriangle : Sparkles;
   return (
-    <Link href={`/applications/${app.id}`} className="group block">
-      <Card className="h-full gap-3 py-5 transition-colors group-hover:border-primary/40">
-        <CardHeader>
-          <div className="flex items-start justify-between gap-2">
-            <CardTitle className="truncate">{app.company_name}</CardTitle>
-            {app.is_archived ? (
-              <Badge variant="secondary">Archived</Badge>
-            ) : null}
+    <section
+      aria-label="Top insight"
+      className="flex flex-col overflow-hidden rounded-lg border bg-card"
+    >
+      <div className="flex items-center justify-between gap-2 border-b px-4 py-2.5">
+        <h2 className="text-micro text-muted-foreground">Top insight</h2>
+        <TrendingUp className="size-3.5 text-text-3" aria-hidden />
+      </div>
+      {insight ? (
+        <div className="flex flex-1 flex-col gap-3 px-4 py-3.5">
+          <div className="flex items-center gap-1.5">
+            <Badge variant={isWeakness ? "destructive" : "warning"}>
+              <Icon /> {isWeakness ? "Weakness" : "Pattern"}
+            </Badge>
+            <span className="font-mono text-xs tabular-nums text-text-3">
+              {Math.round(insight.confidence * 100)}% confidence
+            </span>
           </div>
-          <CardDescription className="truncate">
-            {app.role_title}
-          </CardDescription>
-        </CardHeader>
-      </Card>
+          <p className="text-sm leading-relaxed">{insight.summary}</p>
+          <Link
+            href="/brain"
+            className="mt-auto inline-flex w-fit items-center gap-1 text-sm font-medium text-primary transition-colors hover:underline"
+          >
+            See all insights <ArrowUpRight className="size-3.5" />
+          </Link>
+        </div>
+      ) : (
+        <p className="px-4 py-6 text-sm text-muted-foreground">
+          Insights appear once the brain has a few sessions to learn from.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function ApplicationCard({ app }: { app: ApplicationOverviewRow }) {
+  const meta = [
+    `${count(app.rounds)} ${count(app.rounds) === 1 ? "round" : "rounds"}`,
+    `${count(app.documents)} ${count(app.documents) === 1 ? "doc" : "docs"}`,
+    `${count(app.sessions)} ${count(app.sessions) === 1 ? "mock" : "mocks"}`,
+  ].join(" · ");
+
+  return (
+    <Link
+      href={`/applications/${app.id}`}
+      className="group flex flex-col gap-3 rounded-lg border bg-card p-4 transition-colors duration-150 hover:border-border-strong hover:bg-surface-2/40"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span
+          aria-hidden
+          className={`flex size-8 items-center justify-center rounded-md border text-sm font-semibold ${
+            app.is_archived
+              ? "bg-surface-1 text-text-3"
+              : "bg-surface-2 text-foreground"
+          }`}
+        >
+          {app.company_name.slice(0, 1).toUpperCase()}
+        </span>
+        {app.is_archived ? (
+          <Badge variant="outline">Archived</Badge>
+        ) : (
+          <ArrowUpRight
+            className="size-4 text-text-3 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+            aria-hidden
+          />
+        )}
+      </div>
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <span className="truncate text-sm font-medium">{app.company_name}</span>
+        <span className="truncate text-sm text-muted-foreground">
+          {app.role_title}
+        </span>
+      </div>
+      <span className="font-mono text-xs text-text-3">{meta}</span>
     </Link>
   );
 }

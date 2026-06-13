@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useId, useMemo, useState } from "react";
-import { BookOpenText, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { BookOpenText, ChevronDown, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { EmptyState } from "@/components/app/empty-state";
+import { PageHeader } from "@/components/app/page-header";
 
 const initialState: ActionState = { error: null };
 
@@ -35,23 +37,20 @@ export function StoriesView({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Story bank</h1>
-          <p className="text-sm text-muted-foreground">
-            Write each STAR story once. Behavioral mocks draw from these, and the
-            brain links them to the competencies you tag.
-          </p>
-        </div>
-        {!adding ? (
-          <Button onClick={() => setAdding(true)}>
-            <Plus /> New story
-          </Button>
-        ) : null}
-      </div>
+      <PageHeader
+        title="Story bank"
+        description="Write each STAR story once. Behavioral mocks draw from these, and the brain links them to the competencies you tag."
+        actions={
+          !adding ? (
+            <Button onClick={() => setAdding(true)}>
+              <Plus /> New story
+            </Button>
+          ) : null
+        }
+      />
 
       {adding ? (
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
+        <div className="rounded-lg border bg-card p-5">
           <StoryForm
             competencies={competencies}
             onDone={() => setAdding(false)}
@@ -60,15 +59,18 @@ export function StoriesView({
       ) : null}
 
       {stories.length === 0 && !adding ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed bg-card/40 px-6 py-12 text-center">
-          <BookOpenText className="size-6 text-muted-foreground" aria-hidden />
-          <p className="text-sm text-muted-foreground">
-            No stories yet. Add your strongest STAR story — a launch, a turnaround,
-            a hard tradeoff.
-          </p>
-        </div>
+        <EmptyState
+          icon={BookOpenText}
+          title="No stories yet"
+          description="Add your strongest STAR story — a launch, a turnaround, a hard tradeoff."
+          action={
+            <Button size="sm" onClick={() => setAdding(true)}>
+              <Plus /> New story
+            </Button>
+          }
+        />
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-2.5">
           {stories.map((story) => (
             <StoryRow
               key={story.id}
@@ -93,11 +95,14 @@ function StoryRow({
   nameById: Map<string, string>;
 }) {
   const [editing, setEditing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const tags = storyTags(story);
+  // Rough threshold for when clamped content actually hides something.
+  const isLong = story.content.length > 420 || story.content.split("\n").length > 6;
 
   if (editing) {
     return (
-      <li className="rounded-xl border bg-card p-6 shadow-sm">
+      <li className="rounded-lg border bg-card p-5">
         <StoryForm
           story={story}
           competencies={competencies}
@@ -108,10 +113,10 @@ function StoryRow({
   }
 
   return (
-    <li className="flex flex-col gap-3 rounded-xl border bg-card p-6 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <h2 className="font-medium">{story.title}</h2>
-        <div className="flex items-center gap-1">
+    <li className="flex flex-col gap-3 rounded-lg border bg-card p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-sm font-medium">{story.title}</h2>
+        <div className="flex items-center gap-0.5">
           <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
             <Pencil /> Edit
           </Button>
@@ -122,6 +127,7 @@ function StoryRow({
               size="icon"
               type="submit"
               aria-label="Delete story"
+              className="size-7 text-muted-foreground hover:text-destructive"
               onClick={(e) => {
                 if (!confirm("Delete this story?")) e.preventDefault();
               }}
@@ -132,12 +138,28 @@ function StoryRow({
         </div>
       </div>
 
-      <p className="max-h-56 overflow-y-auto text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
+      <p
+        className={`text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground ${
+          expanded ? "" : "line-clamp-4"
+        }`}
+      >
         {story.content}
       </p>
+      {isLong ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="inline-flex w-fit items-center gap-1 text-xs font-medium text-text-3 transition-colors hover:text-foreground"
+        >
+          <ChevronDown
+            className={`size-3 transition-transform duration-150 ${expanded ? "rotate-180" : ""}`}
+          />
+          {expanded ? "Show less" : "Show more"}
+        </button>
+      ) : null}
 
       {tags.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1">
           {tags.map((id) => (
             <Badge key={id} variant="secondary">
               {nameById.get(id) ?? id}
@@ -205,10 +227,9 @@ function StoryForm({
 
       <fieldset className="flex flex-col gap-3">
         <legend className="text-sm font-medium">
-          Competencies{" "}
-          <span className="text-muted-foreground">(optional)</span>
+          Competencies <span className="text-muted-foreground">(optional)</span>
         </legend>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 rounded-md border bg-surface-0/40 p-4 sm:grid-cols-3">
           {INTERVIEW_TYPES.map((type) => {
             const group = competencies.filter(
               (c) => c.interview_type === type.value
@@ -216,9 +237,7 @@ function StoryForm({
             if (group.length === 0) return null;
             return (
               <div key={type.value} className="flex flex-col gap-2">
-                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                  {type.label}
-                </p>
+                <p className="text-micro text-muted-foreground">{type.label}</p>
                 {group.map((c) => (
                   <label
                     key={c.id}
@@ -229,7 +248,7 @@ function StoryForm({
                       name="competency_tags"
                       value={c.id}
                       defaultChecked={selected.has(c.id)}
-                      className="size-4 rounded border-border accent-primary"
+                      className="size-3.5 rounded border-border accent-primary"
                     />
                     {c.name}
                   </label>
@@ -246,10 +265,10 @@ function StoryForm({
         </p>
       ) : null}
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <Button type="submit" disabled={isPending}>
           {isPending ? <Loader2 className="animate-spin" /> : null}
-          {isPending ? "Saving…" : isEdit ? "Save story" : "Save story"}
+          {isPending ? "Saving…" : "Save story"}
         </Button>
         <Button
           type="button"

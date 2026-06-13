@@ -10,26 +10,31 @@
    ============================================================ */
 
 :root {
-  /* ---- palette: surfaces ---- */
-  --bg: oklch(0.145 0.012 270);
-  --surface-0: oklch(0.165 0.013 270);
-  --surface-1: oklch(0.19 0.014 270);
-  --surface-2: oklch(0.225 0.016 270);
-  --surface-3: oklch(0.27 0.018 270);
+  /* ---- palette: surfaces ----
+     Near-black, low-chroma neutrals; each elevation is one readable
+     step, never a leap. The app should feel machined, not painted. */
+  --bg: oklch(0.135 0.009 270);
+  --surface-0: oklch(0.155 0.01 270);
+  --surface-1: oklch(0.175 0.011 270);
+  --surface-2: oklch(0.21 0.013 270);
+  --surface-3: oklch(0.25 0.015 270);
 
   /* ---- palette: text ---- */
-  --text-1: oklch(0.93 0.006 270);
-  --text-2: oklch(0.72 0.012 270);
-  --text-3: oklch(0.55 0.014 270);
+  --text-1: oklch(0.945 0.005 270);
+  --text-2: oklch(0.715 0.01 270);
+  --text-3: oklch(0.54 0.012 270);
 
-  /* ---- palette: lines ---- */
-  --border: oklch(0.28 0.014 270);
-  --border-strong: oklch(0.36 0.016 270);
+  /* ---- palette: lines ----
+     Hairlines carry the layout; shadows are reserved for overlays. */
+  --border: oklch(0.235 0.012 270);
+  --border-strong: oklch(0.31 0.014 270);
 
   /* ---- palette: brand ----
      --accent is a per-element knob: any component or section may
-     override it locally and every derived tint below follows. */
-  --accent: oklch(0.66 0.19 285);
+     override it locally and every derived tint below follows.
+     Kept deliberately calm — the accent marks primary actions and
+     live signals, never decoration. */
+  --accent: oklch(0.63 0.165 283);
   --accent-2: oklch(0.8 0.13 80);
   --accent-contrast: oklch(0.985 0.005 285);
 
@@ -52,15 +57,16 @@
   --mx: 50%;
   --my: 50%;
 
-  /* ---- radii ---- */
+  /* ---- radii ----
+     Tighter than stock shadcn: 6px controls, 10px panels. */
   --radius-xs: 0.25rem;
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
+  --radius-sm: 0.3125rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.875rem;
   --radius-full: 9999px;
   /* shadcn/ui reads --radius */
-  --radius: 0.5rem;
+  --radius: 0.375rem;
 
   /* ---- elevation (soft in dark, replaced by hard offsets in light) ---- */
   --shadow-1: 0 1px 2px oklch(0 0 0 / 0.28);

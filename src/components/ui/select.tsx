@@ -16,9 +16,9 @@ function Select({
       <select
         data-slot="select"
         className={cn(
-          "flex h-9 w-full appearance-none rounded-md border bg-transparent px-3 py-1 pr-9 text-sm shadow-sm transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
-          "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-          "aria-invalid:ring-destructive/20 aria-invalid:border-destructive",
+          "flex h-9 w-full appearance-none rounded-md border bg-surface-0/60 px-2.5 py-1 pr-8 text-base transition-[color,border-color,box-shadow] outline-none hover:border-border-strong disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:h-8 md:text-sm",
+          "focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:hover:border-ring",
+          "aria-invalid:border-destructive aria-invalid:ring-destructive/20",
           className
         )}
         {...props}
@@ -26,7 +26,7 @@ function Select({
         {children}
       </select>
       <ChevronDown
-        className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
+        className="pointer-events-none absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 text-text-3"
         aria-hidden
       />
     </div>

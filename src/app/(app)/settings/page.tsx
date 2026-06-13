@@ -5,14 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/auth/actions";
 import { ProfileForm } from "@/components/app/profile-form";
 import { ThemeToggle } from "@/components/app/theme-toggle";
+import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -34,48 +28,41 @@ export default async function SettingsPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Account and preferences.
-        </p>
-      </div>
+      <PageHeader title="Settings" description="Account and preferences." />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Account</CardTitle>
-          <CardDescription>{user.email}</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="divide-y divide-border/70 overflow-hidden rounded-lg border bg-card">
+        <section className="flex flex-col gap-3 p-4">
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-sm font-semibold">Account</h2>
+            <p className="font-mono text-xs text-text-3">{user.email}</p>
+          </div>
           <ProfileForm fullName={profile?.full_name ?? null} />
-        </CardContent>
-      </Card>
+        </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Appearance</CardTitle>
-          <CardDescription>
-            Dark, or the brutalist light variant.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <section className="flex items-center justify-between gap-4 p-4">
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-sm font-semibold">Appearance</h2>
+            <p className="text-sm text-muted-foreground">
+              Dark, or the brutalist light variant.
+            </p>
+          </div>
           <ThemeToggle />
-        </CardContent>
-      </Card>
+        </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Session</CardTitle>
-          <CardDescription>Sign out of InterviewBrain.</CardDescription>
-        </CardHeader>
-        <CardContent>
+        <section className="flex items-center justify-between gap-4 p-4">
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-sm font-semibold">Session</h2>
+            <p className="text-sm text-muted-foreground">
+              Sign out of InterviewBrain on this device.
+            </p>
+          </div>
           <form action={signOut}>
-            <Button type="submit" variant="outline">
+            <Button type="submit" variant="outline" size="sm">
               Sign out
             </Button>
           </form>
-        </CardContent>
-      </Card>
+        </section>
+      </div>
     </div>
   );
 }

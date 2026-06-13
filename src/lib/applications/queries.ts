@@ -20,6 +20,27 @@ export async function getApplications(): Promise<Application[]> {
   return data ?? [];
 }
 
+export type ApplicationOverviewRow = Application & {
+  rounds: { count: number }[];
+  documents: { count: number }[];
+  sessions: { count: number }[];
+};
+
+// Applications with per-vault activity counts for the dashboard cards.
+export async function getApplicationsOverview(): Promise<
+  ApplicationOverviewRow[]
+> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("applications")
+    .select("*, rounds(count), documents(count), sessions(count)")
+    .order("is_archived", { ascending: true })
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as ApplicationOverviewRow[];
+}
+
 export async function getApplication(id: string): Promise<{
   application: Application;
   rounds: Round[];

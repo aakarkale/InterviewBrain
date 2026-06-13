@@ -16,6 +16,17 @@ export async function getInsights(): Promise<Insight[]> {
   return data ?? [];
 }
 
+export async function getActiveInsightCount(): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("insights")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "active");
+
+  if (error) throw error;
+  return count ?? 0;
+}
+
 // Highest-confidence weakness or pattern for the dashboard's "top insight"
 // card. Strengths are reassuring but the product's job is to surface what to
 // fix, so weaknesses and cross-company patterns rank first.
