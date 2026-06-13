@@ -92,44 +92,49 @@
 }
 
 /* ============================================================
-   Light theme — the brutalist variant.
-   Warm paper, ink lines, hard offset shadows, no blur.
+   Light theme — the precision counterpart of the dark theme.
+   Cool paper bg, white cards, crisp gray hairlines, the same
+   restrained violet accent. Soft shadows (the old hard-offset
+   "brutalist" light is retired so light reads as the sibling of
+   the precision dark, not a different app).
    ============================================================ */
 [data-theme="light"] {
-  --bg: oklch(0.972 0.008 95);
-  --surface-0: oklch(0.985 0.005 95);
-  --surface-1: oklch(0.995 0.003 95);
-  --surface-2: oklch(0.955 0.009 95);
-  --surface-3: oklch(0.93 0.011 95);
+  --bg: oklch(0.975 0.004 270);
+  --surface-0: oklch(0.952 0.005 270);
+  --surface-1: oklch(1 0 0);
+  --surface-2: oklch(0.936 0.006 270);
+  --surface-3: oklch(0.9 0.008 270);
 
-  --text-1: oklch(0.21 0.02 270);
-  --text-2: oklch(0.4 0.018 270);
-  --text-3: oklch(0.55 0.015 270);
+  --text-1: oklch(0.245 0.021 270);
+  --text-2: oklch(0.448 0.016 270);
+  --text-3: oklch(0.582 0.013 270);
 
-  /* ink lines: borders read as drawn, not tinted */
-  --border: oklch(0.32 0.018 270);
-  --border-strong: oklch(0.21 0.02 270);
+  /* gray hairlines, not ink — lines support the layout quietly */
+  --border: oklch(0.905 0.005 270);
+  --border-strong: oklch(0.79 0.008 270);
 
-  --accent: oklch(0.5 0.2 285);
-  --accent-2: oklch(0.68 0.14 75);
-  --accent-contrast: oklch(0.985 0.005 285);
+  --accent: oklch(0.535 0.2 285);
+  --accent-2: oklch(0.6 0.13 70);
+  --accent-contrast: oklch(0.99 0.003 285);
 
-  --ok: oklch(0.55 0.15 155);
-  --warn: oklch(0.62 0.14 80);
-  --danger: oklch(0.55 0.2 25);
+  --ok: oklch(0.52 0.13 155);
+  --warn: oklch(0.58 0.12 75);
+  --danger: oklch(0.535 0.2 25);
+  --danger-contrast: oklch(0.99 0.003 25);
 
   --accent-soft: color-mix(in oklab, var(--accent) 12%, transparent);
   --accent-faint: color-mix(in oklab, var(--accent) 6%, transparent);
-  --border-accent: color-mix(in oklab, var(--accent) 45%, var(--border-strong));
-  --glow: color-mix(in oklab, var(--accent) 16%, transparent);
-  --tooltip-bg: color-mix(in oklab, var(--accent) 7%, var(--surface-1));
-  --ring: color-mix(in oklab, var(--accent) 70%, transparent);
+  --border-accent: color-mix(in oklab, var(--accent) 40%, var(--border-strong));
+  --glow: color-mix(in oklab, var(--accent) 14%, transparent);
+  --tooltip-bg: color-mix(in oklab, var(--accent) 6%, var(--surface-1));
+  --ring: color-mix(in oklab, var(--accent) 55%, transparent);
 
-  /* hard offset shadows — the brutalist signature */
-  --shadow-1: 2px 2px 0 var(--border-strong);
-  --shadow-2: 4px 4px 0 var(--border-strong);
-  --shadow-3: 6px 6px 0 var(--border-strong);
-  --shadow-glow: 4px 4px 0 color-mix(in oklab, var(--accent) 55%, var(--bg));
+  /* soft elevation, layered for the few raised surfaces (popovers,
+     toasts). Most app chrome relies on hairlines, not shadow. */
+  --shadow-1: 0 1px 2px oklch(0 0 0 / 0.06), 0 1px 1px oklch(0 0 0 / 0.04);
+  --shadow-2: 0 4px 14px oklch(0 0 0 / 0.08);
+  --shadow-3: 0 14px 34px oklch(0 0 0 / 0.12);
+  --shadow-glow: 0 0 0 1px var(--border-accent);
 
   color-scheme: light;
 }
