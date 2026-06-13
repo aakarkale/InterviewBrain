@@ -83,20 +83,20 @@ export default async function DashboardPage() {
     <div className="flex flex-col gap-7">
       <PageHeader
         title={firstName ? `Welcome back, ${firstName}` : "Welcome back"}
-        description="Your applications, practice sessions, and what the brain is noticing."
+        description="Your interviews, practice sessions, and what the brain is noticing."
         actions={
           atCap ? (
             <Button
               variant="outline"
               disabled
-              title={`Free plan is capped at ${MAX_ACTIVE_APPLICATIONS} active applications`}
+              title={`Free plan is capped at ${MAX_ACTIVE_APPLICATIONS} active interviews`}
             >
-              <Plus /> New application
+              <Plus /> New interview
             </Button>
           ) : (
             <Button asChild>
               <Link href="/applications/new">
-                <Plus /> New application
+                <Plus /> New interview
               </Link>
             </Button>
           )
@@ -105,7 +105,7 @@ export default async function DashboardPage() {
 
       <dl className="grid grid-cols-3 divide-x divide-border overflow-hidden rounded-lg border bg-surface-0/50">
         <Stat
-          label="Active applications"
+          label="Active interviews"
           value={active.length}
           max={MAX_ACTIVE_APPLICATIONS}
         />
@@ -117,16 +117,16 @@ export default async function DashboardPage() {
         <Stat label="Active insights" value={insightCount} />
       </dl>
 
-      <section className="flex flex-col gap-3" aria-label="Applications">
+      <section className="flex flex-col gap-3" aria-label="Interviews">
         {applications.length === 0 ? (
           <EmptyState
             icon={FolderOpen}
-            title="No applications yet"
+            title="No interviews yet"
             description="Create your first vault — paste a JD and your resume, and you're ready to practice."
             action={
               <Button asChild size="sm">
                 <Link href="/applications/new">
-                  <Plus /> New application
+                  <Plus /> New interview
                 </Link>
               </Button>
             }
@@ -151,7 +151,7 @@ export default async function DashboardPage() {
           </div>
           {recentSessions.length === 0 ? (
             <p className="px-4 py-6 text-sm text-muted-foreground">
-              Run your first mock from an application — feedback lands here.
+              Run your first mock from an interview — feedback lands here.
             </p>
           ) : (
             <ul className="divide-y divide-border/70">
@@ -178,7 +178,7 @@ export default async function DashboardPage() {
                         )}
                         <div className="flex min-w-0 flex-col">
                           <span className="truncate text-sm font-medium">
-                            {s.applications?.company_name ?? "Application"}
+                            {s.applications?.company_name ?? "Interview"}
                           </span>
                           <span className="truncate text-xs text-muted-foreground">
                             {interviewLabel(s.interview_type)}

@@ -50,7 +50,7 @@ function evidenceSummary(insight: Insight): string {
   const label: Record<string, [string, string]> = {
     session: ["practice session", "practice sessions"],
     round: ["real round", "real rounds"],
-    application: ["application", "applications"],
+    application: ["interview", "interviews"],
     story: ["story", "stories"],
     document: ["document", "documents"],
   };
@@ -165,7 +165,7 @@ export function InsightCard({
         ) : null}
         {isCrossApp ? (
           <Badge variant="default">
-            <Layers /> {companies.length} applications
+            <Layers /> {companies.length} interviews
           </Badge>
         ) : null}
         <span

@@ -32,7 +32,7 @@ export function ApplicationForm({
 
   useEffect(() => {
     if (state.success) {
-      toast.success(isEdit ? "Application updated" : "Application created");
+      toast.success(isEdit ? "Interview updated" : "Interview created");
       onDone?.();
     }
   }, [state, isEdit, onDone]);
@@ -103,7 +103,7 @@ export function ApplicationForm({
           id="resume"
           name="resume"
           defaultValue={application?.resume ?? ""}
-          placeholder="Paste the resume you're using for this application…"
+          placeholder="Paste the resume you're using for this interview…"
           className="min-h-32"
           required
         />
@@ -125,7 +125,7 @@ export function ApplicationForm({
             ? "Saving…"
             : isEdit
               ? "Save changes"
-              : "Create application"}
+              : "Create interview"}
         </Button>
         {isEdit && onDone ? (
           <Button

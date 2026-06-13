@@ -18,7 +18,7 @@ import { useLandingMotion } from "./use-landing-motion";
 const LOOP_STEPS = [
   {
     title: "Store",
-    body: "Drop the JD, your tailored resume, research notes, and call transcripts into one vault per application.",
+    body: "Drop the JD, your tailored resume, research notes, and call transcripts into one vault per interview.",
   },
   {
     title: "Practice",
@@ -37,7 +37,7 @@ const LOOP_STEPS = [
 const TILES = [
   {
     icon: FolderOpen,
-    title: "Application vault",
+    title: "Interview vault",
     body: "JD, tailored resume, recruiter notes, call transcripts — one place per company, all of it feeding the interviewer.",
   },
   {
@@ -58,7 +58,7 @@ const TILES = [
   {
     icon: Brain,
     title: "The cross-company brain",
-    body: "Pattern detection across all your applications, surfaced as plain-language insights — with receipts.",
+    body: "Pattern detection across all your interviews, surfaced as plain-language insights — with receipts.",
   },
   {
     icon: BookOpenText,
@@ -118,7 +118,7 @@ export function Landing() {
                 <span className="l-headline-accent">remembers.</span>
               </h1>
               <p className="l-sub" data-hero-item>
-                Keep each application&apos;s research in one vault. Run mock
+                Keep each interview&apos;s research in one vault. Run mock
                 interviews built from it. Get feedback that knows what you
                 fumbled last week — at every other company too.
               </p>
@@ -141,7 +141,7 @@ export function Landing() {
                     <path data-draw="hero" d="M 36 52 l 9 7 l -11 4" />
                   </svg>
                 </div>
-                <span className="l-chip">Insight · cross-application</span>
+                <span className="l-chip">Insight · cross-company</span>
                 <p className="l-insight-title">
                   Metrics questions are your weakest area across 3 companies.
                 </p>
@@ -231,7 +231,7 @@ export function Landing() {
                 The brain
               </p>
               <h2 className="l-h2" data-reveal>
-                One brain across every application.
+                One brain across every interview.
               </h2>
               <p className="l-section-sub" data-reveal>
                 Generic tools forget you between sessions. InterviewBrain
@@ -262,7 +262,7 @@ export function Landing() {
               Walk in already warmed up.
             </h2>
             <p data-reveal>
-              Free while in beta — 3 active applications, 10 practice sessions
+              Free while in beta — 3 active interviews, 10 practice sessions
               a month.
             </p>
             <div data-reveal>

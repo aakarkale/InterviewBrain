@@ -79,7 +79,7 @@ export async function createApplication(
   if (countError) return { error: countError.message };
   if ((count ?? 0) >= MAX_ACTIVE_APPLICATIONS) {
     return {
-      error: `Free plan is capped at ${MAX_ACTIVE_APPLICATIONS} active applications. Archive one to add another.`,
+      error: `Free plan is capped at ${MAX_ACTIVE_APPLICATIONS} active interviews. Archive one to add another.`,
     };
   }
 
@@ -113,7 +113,7 @@ export async function updateApplication(
   const job_description = field(formData, "job_description");
   const resume = field(formData, "resume");
 
-  if (!id) return { error: "Missing application." };
+  if (!id) return { error: "Missing interview." };
   if (!company_name || !role_title) {
     return { error: "Company and role are both required." };
   }
@@ -166,7 +166,7 @@ export async function createRound(
   const outcome = field(formData, "outcome") || "upcoming";
   const round_number = Number(formData.get("round_number"));
 
-  if (!application_id) return { error: "Missing application." };
+  if (!application_id) return { error: "Missing interview." };
   if (!ROUND_TYPE_VALUES.includes(round_type)) {
     return { error: "Pick a round type." };
   }
@@ -265,7 +265,7 @@ export async function createDocument(
   const title = field(formData, "title");
   const content = field(formData, "content");
 
-  if (!application_id) return { error: "Missing application." };
+  if (!application_id) return { error: "Missing interview." };
   if (!DOCUMENT_TYPE_VALUES.includes(type)) {
     return { error: "Pick a document type." };
   }

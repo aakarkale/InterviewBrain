@@ -65,9 +65,9 @@ export async function startSession(
     .eq("id", application_id)
     .maybeSingle();
 
-  if (!application) return { error: "Application not found." };
+  if (!application) return { error: "Interview not found." };
   if (application.is_archived) {
-    return { error: "Unarchive this application to practice for it." };
+    return { error: "Unarchive this interview to practice for it." };
   }
 
   if (round_id) {
@@ -77,7 +77,7 @@ export async function startSession(
       .eq("id", round_id)
       .maybeSingle();
     if (!round || round.application_id !== application_id) {
-      return { error: "That round doesn't belong to this application." };
+      return { error: "That round doesn't belong to this interview." };
     }
   }
 

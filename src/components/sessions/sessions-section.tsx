@@ -58,7 +58,7 @@ export function SessionsSection({
 
       {isArchived ? (
         <div className="rounded-lg border border-dashed bg-surface-0/40 px-4 py-5 text-sm text-muted-foreground">
-          This application is archived. Unarchive it to start a new session.
+          This interview is archived. Unarchive it to start a new session.
         </div>
       ) : (
         <form

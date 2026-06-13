@@ -24,7 +24,7 @@ export async function generateMetadata({
   return {
     title: title
       ? `${title.company_name} · ${title.role_title}`
-      : "Application",
+      : "Interview",
   };
 }
 
@@ -47,7 +47,7 @@ export default async function ApplicationPage({
           href="/dashboard"
           className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ArrowLeft className="size-3.5" /> Applications
+          <ArrowLeft className="size-3.5" /> Interviews
         </Link>
 
         <ApplicationOverview application={application} />

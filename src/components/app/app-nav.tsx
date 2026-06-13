@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
-  { href: "/dashboard", label: "Applications", match: ["/dashboard", "/applications", "/sessions"] },
+  { href: "/dashboard", label: "Interviews", match: ["/dashboard", "/applications", "/sessions"] },
   { href: "/stories", label: "Story bank", match: ["/stories"] },
   { href: "/brain", label: "Brain", match: ["/brain"] },
 ] as const;
