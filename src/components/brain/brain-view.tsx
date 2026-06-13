@@ -1,88 +1,29 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import {
-  AlertTriangle,
-  Brain,
-  Loader2,
-  Network,
-  RefreshCw,
-  Sparkles,
-  TrendingUp,
-} from "lucide-react";
+import { useMemo, useState, useTransition } from "react";
+import { Brain, Loader2, Network, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { refreshBrain } from "@/lib/brain/actions";
-import {
-  insightEvidence,
-  type GraphData,
-  type Insight,
-  type InsightType,
-} from "@/lib/brain/types";
-import { Badge } from "@/components/ui/badge";
+import type { GraphData, Insight } from "@/lib/brain/types";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/app/empty-state";
 import { PageHeader } from "@/components/app/page-header";
+import { InsightCard } from "./insight-card";
 import { MindMap } from "./mind-map";
 
 type Tab = "insights" | "map";
-
-const TYPE_META: Record<
-  InsightType,
-  {
-    label: string;
-    variant: "destructive" | "success" | "warning";
-    rail: string;
-    icon: typeof Brain;
-  }
-> = {
-  weakness: {
-    label: "Weakness",
-    variant: "destructive",
-    rail: "before:bg-destructive",
-    icon: AlertTriangle,
-  },
-  strength: {
-    label: "Strength",
-    variant: "success",
-    rail: "before:bg-success",
-    icon: TrendingUp,
-  },
-  pattern: {
-    label: "Pattern",
-    variant: "warning",
-    rail: "before:bg-warning",
-    icon: Sparkles,
-  },
-};
-
-function evidenceSummary(insight: Insight): string {
-  const counts = new Map<string, number>();
-  for (const e of insightEvidence(insight)) {
-    counts.set(e.source_type, (counts.get(e.source_type) ?? 0) + 1);
-  }
-  const label: Record<string, [string, string]> = {
-    session: ["practice session", "practice sessions"],
-    round: ["real round", "real rounds"],
-    application: ["application", "applications"],
-    story: ["story", "stories"],
-    document: ["document", "documents"],
-  };
-  return (
-    [...counts.entries()]
-      .map(([type, n]) => `${n} ${label[type]?.[n === 1 ? 0 : 1] ?? type}`)
-      .join(" · ") || "no evidence"
-  );
-}
 
 export function BrainView({
   insights,
   graph,
   competencyNames,
+  companiesByInsight,
 }: {
   insights: Insight[];
   graph: GraphData;
   competencyNames: Record<string, string>;
+  companiesByInsight: Record<string, string[]>;
 }) {
   const [pending, startTransition] = useTransition();
   const [tab, setTab] = useState<Tab>("insights");
@@ -96,11 +37,20 @@ export function BrainView({
   }
 
   // Ordered weakness → pattern → strength so the most actionable insights lead.
-  const order: Record<string, number> = { weakness: 0, pattern: 1, strength: 2 };
-  const sorted = [...insights].sort(
-    (a, b) =>
-      (order[a.type] ?? 9) - (order[b.type] ?? 9) ||
-      b.confidence - a.confidence
+  const sorted = useMemo(() => {
+    const order: Record<string, number> = { weakness: 0, pattern: 1, strength: 2 };
+    return [...insights].sort(
+      (a, b) =>
+        (order[a.type] ?? 9) - (order[b.type] ?? 9) || b.confidence - a.confidence
+    );
+  }, [insights]);
+
+  // The first (highest-priority) insight that spans ≥2 companies gets the
+  // one-time reveal.
+  const revealId = useMemo(
+    () =>
+      sorted.find((i) => (companiesByInsight[i.id]?.length ?? 0) >= 2)?.id ?? null,
+    [sorted, companiesByInsight]
   );
 
   return (
@@ -152,60 +102,22 @@ export function BrainView({
         />
       ) : (
         <ul className="flex flex-col gap-2.5">
-          {sorted.map((insight) => {
-            const meta = TYPE_META[insight.type as InsightType] ?? TYPE_META.pattern;
-            const Icon = meta.icon;
-            const competency = insight.competency_id
-              ? competencyNames[insight.competency_id]
-              : null;
-            return (
-              <li
-                key={insight.id}
-                className={`relative flex flex-col gap-2.5 overflow-hidden rounded-lg border bg-card p-4 pl-5 before:absolute before:inset-y-0 before:left-0 before:w-0.5 ${meta.rail}`}
-              >
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <Badge variant={meta.variant}>
-                    <Icon /> {meta.label}
-                  </Badge>
-                  {competency ? (
-                    <Badge variant="outline">{competency}</Badge>
-                  ) : null}
-                  <span
-                    className="ml-auto flex items-center gap-1.5"
-                    title={`${Math.round(insight.confidence * 100)}% confidence`}
-                  >
-                    <ConfidenceMeter value={insight.confidence} />
-                    <span className="font-mono text-xs tabular-nums text-text-3">
-                      {Math.round(insight.confidence * 100)}%
-                    </span>
-                  </span>
-                </div>
-                <p className="text-sm leading-relaxed">{insight.summary}</p>
-                <p className="font-mono text-xs text-text-3">
-                  {evidenceSummary(insight)}
-                </p>
-              </li>
-            );
-          })}
+          {sorted.map((insight) => (
+            <InsightCard
+              key={insight.id}
+              insight={insight}
+              competencyName={
+                insight.competency_id
+                  ? (competencyNames[insight.competency_id] ?? null)
+                  : null
+              }
+              companies={companiesByInsight[insight.id] ?? []}
+              reveal={insight.id === revealId}
+            />
+          ))}
         </ul>
       )}
     </div>
-  );
-}
-
-function ConfidenceMeter({ value }: { value: number }) {
-  const filled = Math.round(value * 5);
-  return (
-    <span className="flex items-center gap-px" aria-hidden>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <span
-          key={n}
-          className={`h-2.5 w-1 rounded-[1px] ${
-            n <= filled ? "bg-primary/70" : "bg-surface-3"
-          }`}
-        />
-      ))}
-    </span>
   );
 }
 

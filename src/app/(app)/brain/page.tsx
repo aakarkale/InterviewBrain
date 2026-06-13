@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { createClient } from "@/lib/supabase/server";
-import { getInsights } from "@/lib/brain/queries";
+import { getCompaniesByInsight, getInsights } from "@/lib/brain/queries";
 import { getBrainGraph } from "@/lib/brain/graph";
 import { BrainView } from "@/components/brain/brain-view";
 
@@ -13,11 +13,13 @@ export const maxDuration = 300;
 
 export default async function BrainPage() {
   const supabase = await createClient();
-  const [insights, graph, { data: competencies }] = await Promise.all([
-    getInsights(),
-    getBrainGraph(),
-    supabase.from("competencies").select("id, name"),
-  ]);
+  const [insights, graph, companiesByInsight, { data: competencies }] =
+    await Promise.all([
+      getInsights(),
+      getBrainGraph(),
+      getCompaniesByInsight(),
+      supabase.from("competencies").select("id, name"),
+    ]);
 
   const competencyNames = Object.fromEntries(
     (competencies ?? []).map((c) => [c.id, c.name])
@@ -28,6 +30,7 @@ export default async function BrainPage() {
       insights={insights}
       graph={graph}
       competencyNames={competencyNames}
+      companiesByInsight={companiesByInsight}
     />
   );
 }
