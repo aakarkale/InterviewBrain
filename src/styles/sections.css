@@ -658,58 +658,6 @@ html.lenis body {
   font-weight: 600;
 }
 
-.l-map-panel {
-  background: var(--surface-0);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  padding: 20px;
-  box-shadow: var(--shadow-2);
-}
-
-[data-theme="light"] .l-map-panel {
-  border-color: var(--border-strong);
-}
-
-.l-map {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.l-map .edge {
-  stroke: var(--border-accent);
-  stroke-width: 1.5;
-  fill: none;
-}
-
-.l-map .node {
-  fill: var(--surface-2);
-  stroke: var(--border-strong);
-  stroke-width: 1.5;
-}
-
-.l-map .node-hot {
-  fill: var(--accent-faint);
-  stroke: var(--accent);
-  animation: glow-breathe 5s var(--ease-in-out) infinite;
-}
-
-.l-map .node-warm {
-  fill: color-mix(in oklab, var(--accent-2) 10%, transparent);
-  stroke: var(--accent-2);
-}
-
-.l-map text {
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  fill: var(--text-3);
-}
-
-.l-map .label-hot {
-  fill: var(--accent);
-}
-
 @media (max-width: 900px) {
   .l-brain-inner {
     grid-template-columns: 1fr;
