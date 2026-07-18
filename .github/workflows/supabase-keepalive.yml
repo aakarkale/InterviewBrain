@@ -1,0 +1,66 @@
+name: Supabase keep-alive
+
+# Free-tier Supabase projects auto-pause after ~7 days without activity,
+# which takes the app's auth + database (and the demo login) offline until
+# someone manually restores the project.
+#
+# This job pings the REST API on a schedule to reset that idle timer. The
+# request runs a real, RLS-filtered SELECT against Postgres (it returns an
+# empty array for the anon role, but the query still executes), which counts
+# as database activity — the thing the pause timer actually watches.
+#
+# Cadence is deliberately well under the 7-day window: GitHub can delay or
+# silently drop scheduled runs under load, so ~every 2 days leaves room for
+# a couple of missed runs before the project would ever pause.
+
+on:
+  schedule:
+    - cron: "17 6 */2 * *" # ~06:17 UTC every 2nd day (off the top of the hour)
+  workflow_dispatch: {} # allow manual runs (e.g. to test after setup)
+
+# This workflow only makes an outbound HTTP request; it needs no access to
+# the repo, so drop all GITHUB_TOKEN permissions.
+permissions: {}
+
+# Never let a slow run overlap the next scheduled one.
+concurrency:
+  group: supabase-keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping Supabase REST to reset the idle timer
+        env:
+          # Public project URL — safe to hardcode.
+          SUPABASE_URL: https://xbfcfefjudntqpgpesuo.supabase.co
+          # Public anon key, read from a repo secret to keep the JWT out of
+          # the (public) repo. Add it under:
+          #   Settings -> Secrets and variables -> Actions -> New repository secret
+          #   Name: SUPABASE_ANON_KEY
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "::error::Repository secret SUPABASE_ANON_KEY is not set — keep-alive cannot run."
+            echo "Add it: Settings -> Secrets and variables -> Actions -> New repository secret"
+            echo "  Name:  SUPABASE_ANON_KEY"
+            echo "  Value: the project's public anon key"
+            exit 1
+          fi
+
+          # RLS-filtered read: returns [] for the anon role but still hits Postgres.
+          code=$(curl -sS -m 30 -o /dev/null -w '%{http_code}' \
+            "${SUPABASE_URL}/rest/v1/competencies?select=id&limit=1" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}")
+
+          echo "REST ping HTTP status: ${code}"
+          if [ "${code}" != "200" ]; then
+            echo "::error::Keep-alive ping failed (HTTP ${code}); the project may be paused or the anon key is wrong."
+            exit 1
+          fi
+          echo "Supabase project pinged successfully — idle timer reset."
