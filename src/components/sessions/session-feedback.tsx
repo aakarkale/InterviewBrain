@@ -48,7 +48,7 @@ function savableAnswers(transcript: ChatMessage[]): SavableAnswer[] {
 
 export function SessionFeedback({
   sessionId,
-  applicationId,
+  backHref,
   companyName,
   roleTitle,
   interviewType,
@@ -59,7 +59,7 @@ export function SessionFeedback({
   transcript,
 }: {
   sessionId: string;
-  applicationId: string;
+  backHref: string;
   companyName: string;
   roleTitle: string;
   interviewType: string;
@@ -94,7 +94,7 @@ export function SessionFeedback({
   return (
     <div className="flex flex-col gap-6">
       <Link
-        href={`/applications/${applicationId}`}
+        href={backHref}
         className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-3.5" /> {companyName}

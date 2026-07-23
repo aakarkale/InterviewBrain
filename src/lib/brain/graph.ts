@@ -27,7 +27,7 @@ function insightState(type: string): GraphState {
   return "neutral";
 }
 
-// Derives the mind-map graph at request time from applications, competencies,
+// Derives the mind-map graph at request time from companies, competencies,
 // insights, sessions, and stories (SPEC: the map has no table). Nodes are
 // companies, competencies, and stories; edges are practice scores, story tags,
 // and the brain's pattern links. RLS scopes everything to the owner.
@@ -35,29 +35,50 @@ export async function getBrainGraph(): Promise<GraphData> {
   const supabase = await createClient();
 
   const [
-    { data: applications },
+    { data: companies },
+    { data: roles },
+    { data: interviews },
     { data: competencies },
     { data: insights },
     { data: sessions },
     { data: stories },
   ] = await Promise.all([
-    supabase.from("applications").select("id, company_name, is_archived"),
+    supabase.from("companies").select("id, name, is_archived"),
+    supabase.from("roles").select("id, company_id"),
+    supabase.from("interviews").select("id, role_id"),
     supabase.from("competencies").select("id, name"),
     supabase.from("insights").select("*").eq("status", "active"),
     supabase
       .from("sessions")
-      .select("application_id, rubric_scores")
+      .select("interview_id, rubric_scores")
       .eq("status", "completed"),
     supabase.from("stories").select("id, title, competency_tags"),
   ]);
 
-  const apps = (applications ?? []).filter((a) => !a.is_archived);
+  const activeCompanies = (companies ?? []).filter((c) => !c.is_archived);
+  const companyExists = new Set(activeCompanies.map((c) => c.id));
   const competencyName = new Map((competencies ?? []).map((c) => [c.id, c.name]));
+
+  const roleCompany = new Map((roles ?? []).map((r) => [r.id, r.company_id]));
+  const interviewCompany = new Map(
+    (interviews ?? []).map((iv) => [iv.id, roleCompany.get(iv.role_id) ?? null])
+  );
+
+  // Map any evidence ref that identifies a company (company / role / legacy
+  // application) to its active company id.
+  function evidenceCompany(sourceType: string, sourceId: string): string | null {
+    if (sourceType === "company" || sourceType === "application") {
+      return companyExists.has(sourceId) ? sourceId : null;
+    }
+    if (sourceType === "role") {
+      const cid = roleCompany.get(sourceId);
+      return cid && companyExists.has(cid) ? cid : null;
+    }
+    return null;
+  }
 
   const nodes = new Map<string, GraphNode>();
   const edges: GraphEdge[] = [];
-  // Companies touching a competency — drives competency node weight so a
-  // cross-company weakness reads as the largest, most-connected node.
   const competencyCompanies = new Map<string, Set<string>>();
   const usedCompetencies = new Set<string>();
   const usedStories = new Set<string>();
@@ -84,17 +105,18 @@ export async function getBrainGraph(): Promise<GraphData> {
   for (const session of sessions ?? []) {
     const scores = session.rubric_scores as RubricScores | null;
     if (!scores) continue;
-    const company = apps.find((a) => a.id === session.application_id);
-    if (!company) continue;
+    const companyId = session.interview_id
+      ? interviewCompany.get(session.interview_id)
+      : null;
+    if (!companyId || !companyExists.has(companyId)) continue;
     for (const [competencyId, value] of Object.entries(scores)) {
       if (!ensureCompetency(competencyId)) continue;
-      usedCompanies.add(company.id);
-      const set =
-        competencyCompanies.get(competencyId) ?? new Set<string>();
-      set.add(company.id);
+      usedCompanies.add(companyId);
+      const set = competencyCompanies.get(competencyId) ?? new Set<string>();
+      set.add(companyId);
       competencyCompanies.set(competencyId, set);
       edges.push({
-        source: nodeId.company(company.id),
+        source: nodeId.company(companyId),
         target: nodeId.competency(competencyId),
         kind: "scored",
         state: scoreState(value.score),
@@ -132,25 +154,27 @@ export async function getBrainGraph(): Promise<GraphData> {
   }
 
   // 3. Brain pattern links: each insight ties its competency to the companies
-  // and stories it cites. These are the headline edges — a cross-company
-  // weakness fans out from one competency to several company nodes.
+  // and stories it cites.
   for (const insight of insights ?? []) {
     const state = insightState(insight.type);
     let competencyNode: string | null = null;
     if (insight.competency_id && ensureCompetency(insight.competency_id)) {
       competencyNode = nodeId.competency(insight.competency_id);
       const node = nodes.get(competencyNode)!;
-      // Weakness/strength color wins over neutral; keep the best insight's text.
       if (node.state === "neutral") node.state = state;
       if (!node.detail) node.detail = insight.summary;
     }
 
     for (const ref of insightEvidence(insight)) {
       let target: string | null = null;
-      if (ref.source_type === "application" && apps.some((a) => a.id === ref.source_id)) {
-        target = nodeId.company(ref.source_id);
-        usedCompanies.add(ref.source_id);
-      } else if (ref.source_type === "story" && (stories ?? []).some((s) => s.id === ref.source_id)) {
+      const companyId = evidenceCompany(ref.source_type, ref.source_id);
+      if (companyId) {
+        target = nodeId.company(companyId);
+        usedCompanies.add(companyId);
+      } else if (
+        ref.source_type === "story" &&
+        (stories ?? []).some((s) => s.id === ref.source_id)
+      ) {
         target = nodeId.story(ref.source_id);
         usedStories.add(ref.source_id);
       }
@@ -165,29 +189,27 @@ export async function getBrainGraph(): Promise<GraphData> {
     }
   }
 
-  // Company nodes: every active application is an anchor (an isolated one is
-  // itself a signal — a vault with no prep yet).
-  for (const app of apps) {
-    const id = nodeId.company(app.id);
-    const connected = usedCompanies.has(app.id);
+  // Company nodes: every active company is an anchor (an isolated one is itself
+  // a signal — a vault with no prep yet).
+  for (const company of activeCompanies) {
+    const id = nodeId.company(company.id);
+    const connected = usedCompanies.has(company.id);
     nodes.set(id, {
       id,
       kind: "company",
-      label: app.company_name,
+      label: company.name,
       state: "neutral",
       weight: connected ? 3 : 2,
       detail: connected ? null : "No practice yet",
     });
   }
 
-  // Size competencies by how many companies they span + a base.
   for (const competencyId of usedCompetencies) {
     const id = nodeId.competency(competencyId);
     const node = nodes.get(id);
     if (node) node.weight = 1.4 + (competencyCompanies.get(competencyId)?.size ?? 0);
   }
 
-  // Ensure stories referenced only by tags/patterns exist as labeled nodes.
   for (const story of stories ?? []) {
     if (!usedStories.has(story.id)) continue;
     const id = nodeId.story(story.id);
@@ -203,8 +225,6 @@ export async function getBrainGraph(): Promise<GraphData> {
     }
   }
 
-  // Prune dangling edges (whose endpoints didn't materialize) and any node
-  // left with no edge except company anchors.
   const present = new Set(nodes.keys());
   const liveEdges = edges.filter(
     (e) => present.has(e.source) && present.has(e.target)

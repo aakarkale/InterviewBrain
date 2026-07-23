@@ -68,17 +68,29 @@ export async function POST(
     );
   }
 
-  const [{ data: application }, { data: documents }, { data: round }, { data: rounds }, { data: stories }] =
+  if (!session.interview_id) return jsonError("Interview not found.", 404);
+
+  const { data: interview } = await supabase
+    .from("interviews")
+    .select("id, role_id")
+    .eq("id", session.interview_id)
+    .maybeSingle();
+  if (!interview) return jsonError("Interview not found.", 404);
+
+  const { data: role } = await supabase
+    .from("roles")
+    .select("*")
+    .eq("id", interview.role_id)
+    .maybeSingle();
+  if (!role) return jsonError("Role not found.", 404);
+
+  const [{ data: company }, { data: documents }, { data: round }, { data: rounds }, { data: stories }] =
     await Promise.all([
-      supabase
-        .from("applications")
-        .select("*")
-        .eq("id", session.application_id)
-        .maybeSingle(),
+      supabase.from("companies").select("*").eq("id", role.company_id).maybeSingle(),
       supabase
         .from("documents")
         .select("*")
-        .eq("application_id", session.application_id)
+        .eq("role_id", role.id)
         .order("created_at", { ascending: true }),
       session.round_id
         ? supabase
@@ -90,7 +102,7 @@ export async function POST(
       supabase
         .from("rounds")
         .select("id")
-        .eq("application_id", session.application_id),
+        .eq("interview_id", session.interview_id),
       session.interview_type === "behavioral"
         ? supabase
             .from("stories")
@@ -99,11 +111,12 @@ export async function POST(
         : Promise.resolve({ data: [] }),
     ]);
 
-  if (!application) return jsonError("Application not found.", 404);
+  if (!company) return jsonError("Company not found.", 404);
 
   const system = buildInterviewerPrompt({
     interviewType: session.interview_type,
-    application,
+    company,
+    role,
     documents: documents ?? [],
     round: round ?? null,
     roundCount: rounds?.length ?? 0,
