@@ -204,8 +204,10 @@ export async function updateRound(
 
 export async function deleteRound(formData: FormData): Promise<void> {
   const id = field(formData, "id");
+  const back = field(formData, "back");
   if (!id) return;
   const { supabase } = await requireUser();
   await supabase.from("rounds").delete().eq("id", id);
   revalidatePath(INTERVIEW_ROUTE, "page");
+  if (back) redirect(back);
 }

@@ -6,13 +6,14 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
-  { href: "/dashboard", label: "Interviews", match: ["/dashboard", "/applications", "/sessions"] },
+  { href: "/vault", label: "Company Vault", match: ["/vault"] },
+  { href: "/interviews", label: "Interviews", match: ["/interviews", "/sessions"] },
   { href: "/stories", label: "Story bank", match: ["/stories"] },
   { href: "/brain", label: "Brain", match: ["/brain"] },
 ] as const;
 
-// Primary nav with a real active state. Sessions and application detail pages
-// highlight Applications — they're all vault territory.
+// Primary nav with a real active state. Practice sessions highlight Interviews —
+// that's where they live in the hierarchy.
 export function AppNav() {
   const pathname = usePathname();
 

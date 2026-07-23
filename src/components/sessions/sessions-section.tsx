@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 import { startSession, type ActionState } from "@/lib/sessions/actions";
 import { INTERVIEW_TYPES } from "@/lib/applications/constants";
-import type { Round } from "@/lib/applications/queries";
+import type { Round } from "@/lib/vault/types";
 import type { Session } from "@/lib/sessions/queries";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,12 +31,12 @@ function averageScore(session: Session): number | null {
 }
 
 export function SessionsSection({
-  applicationId,
+  interviewId,
   isArchived,
   rounds,
   sessions,
 }: {
-  applicationId: string;
+  interviewId: string;
   isArchived: boolean;
   rounds: Round[];
   sessions: Session[];
@@ -58,14 +58,14 @@ export function SessionsSection({
 
       {isArchived ? (
         <div className="rounded-lg border border-dashed bg-surface-0/40 px-4 py-5 text-sm text-muted-foreground">
-          This interview is archived. Unarchive it to start a new session.
+          This role is archived. Unarchive it to start a new session.
         </div>
       ) : (
         <form
           action={action}
           className="flex flex-col gap-4 rounded-lg border bg-card p-4"
         >
-          <input type="hidden" name="application_id" value={applicationId} />
+          <input type="hidden" name="interview_id" value={interviewId} />
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="interview_type">Interview type</Label>
@@ -94,7 +94,8 @@ export function SessionsSection({
                 <option value="">No specific round</option>
                 {rounds.map((r) => (
                   <option key={r.id} value={r.id}>
-                    Round {r.round_number} · {r.round_type.replace("_", " ")}
+                    Round {r.round_number} ·{" "}
+                    {r.round_name ?? r.round_type.replace("_", " ")}
                   </option>
                 ))}
               </Select>

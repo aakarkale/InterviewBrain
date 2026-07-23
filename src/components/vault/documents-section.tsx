@@ -8,16 +8,17 @@ import {
   createDocument,
   deleteDocument,
   updateDocument,
-  type ActionState,
-} from "@/lib/applications/actions";
-import type { DocumentRow } from "@/lib/applications/queries";
-import { DOCUMENT_TYPES } from "@/lib/applications/constants";
+} from "@/lib/vault/actions";
+import type { ActionState } from "@/lib/forms";
+import type { DocumentRow } from "@/lib/vault/types";
+import { DOCUMENT_TYPES } from "@/lib/vault/constants";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { SectionHeader } from "@/components/app/page-header";
 
 const initialState: ActionState = { error: null };
 
@@ -32,37 +33,31 @@ const typeVariant = (value: string): BadgeVariant => {
 };
 
 export function DocumentsSection({
-  applicationId,
+  roleId,
   documents,
 }: {
-  applicationId: string;
+  roleId: string;
   documents: DocumentRow[];
 }) {
   const [adding, setAdding] = useState(false);
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
-        <div className="flex flex-col gap-0.5">
-          <h2 className="text-sm font-semibold">Documents</h2>
-          <p className="max-w-xl text-sm text-muted-foreground">
-            Notes, call summaries, and pasted transcripts. All of it feeds the
-            interviewer — transcripts get the heaviest weighting.
-          </p>
-        </div>
-        {!adding ? (
-          <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
-            <Plus /> Add document
-          </Button>
-        ) : null}
-      </div>
+      <SectionHeader
+        title="Documents"
+        description="Notes, call summaries, and pasted transcripts. All of it feeds the interviewer — transcripts get the heaviest weighting."
+        actions={
+          !adding ? (
+            <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
+              <Plus /> Add document
+            </Button>
+          ) : undefined
+        }
+      />
 
       {adding ? (
         <div className="rounded-lg border bg-card p-4">
-          <DocumentForm
-            applicationId={applicationId}
-            onDone={() => setAdding(false)}
-          />
+          <DocumentForm roleId={roleId} onDone={() => setAdding(false)} />
         </div>
       ) : null}
 
@@ -74,7 +69,7 @@ export function DocumentsSection({
       ) : (
         <ul className="divide-y divide-border/70 overflow-hidden rounded-lg border bg-card">
           {documents.map((document) => (
-            <DocumentRowItem key={document.id} document={document} />
+            <DocumentRowItem key={document.id} document={document} roleId={roleId} />
           ))}
         </ul>
       )}
@@ -82,7 +77,13 @@ export function DocumentsSection({
   );
 }
 
-function DocumentRowItem({ document }: { document: DocumentRow }) {
+function DocumentRowItem({
+  document,
+  roleId,
+}: {
+  document: DocumentRow;
+  roleId: string;
+}) {
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const isLong =
@@ -92,7 +93,7 @@ function DocumentRowItem({ document }: { document: DocumentRow }) {
     return (
       <li className="bg-surface-0/40 p-4">
         <DocumentForm
-          applicationId={document.application_id}
+          roleId={roleId}
           document={document}
           onDone={() => setEditing(false)}
         />
@@ -115,11 +116,6 @@ function DocumentRowItem({ document }: { document: DocumentRow }) {
           </Button>
           <form action={deleteDocument}>
             <input type="hidden" name="id" value={document.id} />
-            <input
-              type="hidden"
-              name="application_id"
-              value={document.application_id}
-            />
             <Button
               variant="ghost"
               size="icon"
@@ -159,11 +155,11 @@ function DocumentRowItem({ document }: { document: DocumentRow }) {
 }
 
 function DocumentForm({
-  applicationId,
+  roleId,
   document,
   onDone,
 }: {
-  applicationId: string;
+  roleId: string;
   document?: DocumentRow;
   onDone: () => void;
 }) {
@@ -183,7 +179,7 @@ function DocumentForm({
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
-      <input type="hidden" name="application_id" value={applicationId} />
+      <input type="hidden" name="role_id" value={roleId} />
       {isEdit ? <input type="hidden" name="id" value={document!.id} /> : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -199,11 +195,7 @@ function DocumentForm({
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor={`${uid}-type`}>Type</Label>
-          <Select
-            id={`${uid}-type`}
-            name="type"
-            defaultValue={document?.type ?? "note"}
-          >
+          <Select id={`${uid}-type`} name="type" defaultValue={document?.type ?? "note"}>
             {DOCUMENT_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
                 {t.label}

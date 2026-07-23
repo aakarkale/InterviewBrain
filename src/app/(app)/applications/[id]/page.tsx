@@ -1,66 +1,37 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { notFound, redirect } from "next/navigation";
 
-import { getApplication, getApplicationTitle } from "@/lib/applications/queries";
-import { getSessionsForApplication } from "@/lib/sessions/queries";
-import { ApplicationOverview } from "@/components/applications/application-overview";
-import { DocumentsSection } from "@/components/applications/documents-section";
-import { RoundsSection } from "@/components/applications/rounds-section";
-import { SessionsSection } from "@/components/sessions/sessions-section";
+import { createClient } from "@/lib/supabase/server";
 
-// Logging a real-round outcome triggers background brain regeneration (an AI
-// call) via after(); give the route headroom beyond the default timeout.
-export const maxDuration = 300;
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<Metadata> {
-  const { id } = await params;
-  const title = await getApplicationTitle(id);
-  return {
-    title: title
-      ? `${title.company_name} · ${title.role_title}`
-      : "Interview",
-  };
-}
-
-export default async function ApplicationPage({
+// Legacy redirect: old /applications/:id links now point at the migrated
+// interview (or its role). Kept for one release so demo bookmarks survive.
+export default async function LegacyApplicationRedirect({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const data = await getApplication(id);
-  if (!data) notFound();
+  const supabase = await createClient();
 
-  const { application, rounds, documents } = data;
-  const sessions = await getSessionsForApplication(id);
+  const { data: interview } = await supabase
+    .from("interviews")
+    .select("id, role_id, roles(company_id)")
+    .eq("legacy_application_id", id)
+    .maybeSingle();
 
-  return (
-    <div className="flex flex-col gap-9">
-      <div className="flex flex-col gap-5">
-        <Link
-          href="/dashboard"
-          className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="size-3.5" /> Interviews
-        </Link>
+  if (interview) {
+    const companyId = (interview.roles as { company_id: string } | null)?.company_id;
+    if (companyId) {
+      redirect(`/interviews/${companyId}/roles/${interview.role_id}/${interview.id}`);
+    }
+  }
 
-        <ApplicationOverview application={application} />
-      </div>
+  const { data: role } = await supabase
+    .from("roles")
+    .select("id, company_id")
+    .eq("legacy_application_id", id)
+    .maybeSingle();
 
-      <DocumentsSection applicationId={application.id} documents={documents} />
-      <RoundsSection applicationId={application.id} rounds={rounds} />
-      <SessionsSection
-        applicationId={application.id}
-        isArchived={application.is_archived}
-        rounds={rounds}
-        sessions={sessions}
-      />
-    </div>
-  );
+  if (role) redirect(`/vault/${role.company_id}/roles/${role.id}`);
+
+  notFound();
 }

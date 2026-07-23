@@ -3,8 +3,8 @@ import Link from "next/link";
 import {
   AlertTriangle,
   ArrowUpRight,
+  Building2,
   CheckCircle2,
-  FolderOpen,
   MessageSquareText,
   Plus,
   Sparkles,
@@ -13,19 +13,18 @@ import {
 
 import { createClient } from "@/lib/supabase/server";
 import {
-  getApplicationsOverview,
-  type ApplicationOverviewRow,
-} from "@/lib/applications/queries";
+  getActiveRoleCount,
+  getCompaniesOverview,
+  type CompanyOverview,
+} from "@/lib/vault/queries";
 import {
   getMonthlySessionCount,
   getRecentSessions,
   type RecentSession,
 } from "@/lib/sessions/queries";
 import { getActiveInsightCount, getTopInsight } from "@/lib/brain/queries";
-import {
-  MAX_ACTIVE_APPLICATIONS,
-  INTERVIEW_TYPES,
-} from "@/lib/applications/constants";
+import { INTERVIEW_TYPES } from "@/lib/applications/constants";
+import { MAX_ACTIVE_ROLES } from "@/lib/vault/constants";
 import { MAX_SESSIONS_PER_MONTH } from "@/lib/sessions/constants";
 import type { Insight } from "@/lib/brain/types";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +36,7 @@ export const metadata: Metadata = { title: "Dashboard" };
 
 const interviewLabel = (value: string) =>
   INTERVIEW_TYPES.find((t) => t.value === value)?.label ?? value;
+const count = (rel: { count: number }[]) => rel[0]?.count ?? 0;
 
 function sessionAverage(session: RecentSession): number | null {
   const scores = session.rubric_scores;
@@ -48,7 +48,13 @@ function sessionAverage(session: RecentSession): number | null {
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
 
-const count = (rel: { count: number }[]) => rel[0]?.count ?? 0;
+function sessionHref(s: RecentSession): string {
+  return `/sessions/${s.id}`;
+}
+
+function sessionCompany(s: RecentSession): string {
+  return s.interviews?.roles?.companies?.name ?? "Interview";
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -57,58 +63,43 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
 
   const { data: profile } = user
-    ? await supabase
-        .from("users")
-        .select("full_name")
-        .eq("id", user.id)
-        .single()
+    ? await supabase.from("users").select("full_name").eq("id", user.id).single()
     : { data: null };
 
   const firstName = profile?.full_name?.split(/\s+/)[0];
 
-  const [applications, recentSessions, topInsight, monthlySessions, insightCount] =
-    await Promise.all([
-      getApplicationsOverview(),
-      getRecentSessions(5),
-      getTopInsight(),
-      getMonthlySessionCount(),
-      getActiveInsightCount(),
-    ]);
-
-  const active = applications.filter((a) => !a.is_archived);
-  const archived = applications.filter((a) => a.is_archived);
-  const atCap = active.length >= MAX_ACTIVE_APPLICATIONS;
+  const [
+    companies,
+    activeRoles,
+    recentSessions,
+    topInsight,
+    monthlySessions,
+    insightCount,
+  ] = await Promise.all([
+    getCompaniesOverview(),
+    getActiveRoleCount(),
+    getRecentSessions(5),
+    getTopInsight(),
+    getMonthlySessionCount(),
+    getActiveInsightCount(),
+  ]);
 
   return (
     <div className="flex flex-col gap-7">
       <PageHeader
         title={firstName ? `Welcome back, ${firstName}` : "Welcome back"}
-        description="Your interviews, practice sessions, and what the brain is noticing."
+        description="Your vaults, practice sessions, and what the brain is noticing."
         actions={
-          atCap ? (
-            <Button
-              variant="outline"
-              disabled
-              title={`Free plan is capped at ${MAX_ACTIVE_APPLICATIONS} active interviews`}
-            >
-              <Plus /> New interview
-            </Button>
-          ) : (
-            <Button asChild>
-              <Link href="/applications/new">
-                <Plus /> New interview
-              </Link>
-            </Button>
-          )
+          <Button asChild>
+            <Link href="/vault/new">
+              <Plus /> New vault
+            </Link>
+          </Button>
         }
       />
 
       <dl className="grid grid-cols-3 divide-x divide-border overflow-hidden rounded-lg border bg-surface-0/50">
-        <Stat
-          label="Active interviews"
-          value={active.length}
-          max={MAX_ACTIVE_APPLICATIONS}
-        />
+        <Stat label="Active roles" value={activeRoles} max={MAX_ACTIVE_ROLES} />
         <Stat
           label="Sessions this month"
           value={monthlySessions}
@@ -117,24 +108,24 @@ export default async function DashboardPage() {
         <Stat label="Active insights" value={insightCount} />
       </dl>
 
-      <section className="flex flex-col gap-3" aria-label="Interviews">
-        {applications.length === 0 ? (
+      <section className="flex flex-col gap-3" aria-label="Company vaults">
+        {companies.length === 0 ? (
           <EmptyState
-            icon={FolderOpen}
-            title="No interviews yet"
-            description="Create your first vault — paste a JD and your resume, and you're ready to practice."
+            icon={Building2}
+            title="No vaults yet"
+            description="Create your first vault — a company you're interviewing at — then add its roles."
             action={
               <Button asChild size="sm">
-                <Link href="/applications/new">
-                  <Plus /> New interview
+                <Link href="/vault/new">
+                  <Plus /> New vault
                 </Link>
               </Button>
             }
           />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {[...active, ...archived].map((app) => (
-              <ApplicationCard key={app.id} app={app} />
+            {companies.map((company) => (
+              <CompanyCard key={company.id} company={company} />
             ))}
           </div>
         )}
@@ -161,7 +152,7 @@ export default async function DashboardPage() {
                 return (
                   <li key={s.id}>
                     <Link
-                      href={`/sessions/${s.id}`}
+                      href={sessionHref(s)}
                       className="flex items-center justify-between gap-3 px-4 py-2.5 transition-colors duration-150 hover:bg-surface-2/50"
                     >
                       <div className="flex min-w-0 items-center gap-2.5">
@@ -178,7 +169,7 @@ export default async function DashboardPage() {
                         )}
                         <div className="flex min-w-0 flex-col">
                           <span className="truncate text-sm font-medium">
-                            {s.applications?.company_name ?? "Interview"}
+                            {sessionCompany(s)}
                           </span>
                           <span className="truncate text-xs text-muted-foreground">
                             {interviewLabel(s.interview_type)}
@@ -225,9 +216,7 @@ function Stat({
       <dt className="text-micro text-muted-foreground">{label}</dt>
       <dd className="font-mono text-lg leading-none font-medium tabular-nums">
         {value}
-        {max !== undefined ? (
-          <span className="text-text-3"> / {max}</span>
-        ) : null}
+        {max !== undefined ? <span className="text-text-3"> / {max}</span> : null}
       </dd>
     </div>
   );
@@ -272,30 +261,25 @@ function TopInsightCard({ insight }: { insight: Insight | null }) {
   );
 }
 
-function ApplicationCard({ app }: { app: ApplicationOverviewRow }) {
-  const meta = [
-    `${count(app.rounds)} ${count(app.rounds) === 1 ? "round" : "rounds"}`,
-    `${count(app.documents)} ${count(app.documents) === 1 ? "doc" : "docs"}`,
-    `${count(app.sessions)} ${count(app.sessions) === 1 ? "mock" : "mocks"}`,
-  ].join(" · ");
-
+function CompanyCard({ company }: { company: CompanyOverview }) {
+  const roles = count(company.roles);
   return (
     <Link
-      href={`/applications/${app.id}`}
+      href={`/vault/${company.id}`}
       className="group flex flex-col gap-3 rounded-lg border bg-card p-4 transition-colors duration-150 hover:border-border-strong hover:bg-surface-2/40"
     >
       <div className="flex items-start justify-between gap-2">
         <span
           aria-hidden
           className={`flex size-8 items-center justify-center rounded-md border text-sm font-semibold ${
-            app.is_archived
+            company.is_archived
               ? "bg-surface-1 text-text-3"
               : "bg-surface-2 text-foreground"
           }`}
         >
-          {app.company_name.slice(0, 1).toUpperCase()}
+          {company.name.slice(0, 1).toUpperCase()}
         </span>
-        {app.is_archived ? (
+        {company.is_archived ? (
           <Badge variant="outline">Archived</Badge>
         ) : (
           <ArrowUpRight
@@ -305,12 +289,11 @@ function ApplicationCard({ app }: { app: ApplicationOverviewRow }) {
         )}
       </div>
       <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="truncate text-sm font-medium">{app.company_name}</span>
-        <span className="truncate text-sm text-muted-foreground">
-          {app.role_title}
+        <span className="truncate text-sm font-medium">{company.name}</span>
+        <span className="font-mono text-xs text-text-3">
+          {roles} {roles === 1 ? "role" : "roles"}
         </span>
       </div>
-      <span className="font-mono text-xs text-text-3">{meta}</span>
     </Link>
   );
 }
