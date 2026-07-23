@@ -11,6 +11,11 @@ import { PageHeader, SectionHeader } from "@/components/app/page-header";
 import { RoleForm } from "@/components/vault/role-form";
 import { RoundPlanEditor } from "@/components/vault/round-plan-editor";
 import { DocumentsSection } from "@/components/vault/documents-section";
+import { RoleAlignmentPanel } from "@/components/vault/role-alignment-panel";
+import { LinkedinUpload } from "@/components/vault/linkedin-upload";
+
+// Role-alignment generation runs an AI pass (can take tens of seconds).
+export const maxDuration = 300;
 
 export async function generateMetadata({
   params,
@@ -60,6 +65,8 @@ export default async function RolePage({
         {role.is_archived ? <Badge variant="outline">Archived</Badge> : null}
       </div>
 
+      <RoleAlignmentPanel role={role} />
+
       <section className="flex flex-col gap-4">
         <SectionHeader
           title="Round plan"
@@ -75,7 +82,10 @@ export default async function RolePage({
           Edit role (JD, resume, LinkedIn, research)
         </summary>
         <div className="flex flex-col gap-5 border-t px-4 py-4">
-          <RoleForm companyId={company.id} role={role} />
+          <LinkedinUpload roleId={role.id} companyId={company.id} />
+          <div className="border-t pt-5">
+            <RoleForm companyId={company.id} role={role} />
+          </div>
           <div className="flex flex-wrap items-center gap-2 border-t pt-4">
             <form action={setRoleArchived}>
               <input type="hidden" name="id" value={role.id} />

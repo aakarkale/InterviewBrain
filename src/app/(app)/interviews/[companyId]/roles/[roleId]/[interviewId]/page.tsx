@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/app/page-header";
 import { Badge } from "@/components/ui/badge";
 import { RoundsList } from "@/components/interviews/rounds-list";
 import { InterviewSettings } from "@/components/interviews/interview-settings";
+import { InterviewPrepPanel } from "@/components/interviews/interview-prep-panel";
 import { SessionsSection } from "@/components/sessions/sessions-section";
 
 // Starting a session is a redirect; completing one (from the session page)
@@ -60,6 +61,8 @@ export default async function InterviewPage({
       </div>
 
       <RoundsList interviewId={interview.id} basePath={basePath} rounds={rounds} />
+
+      <InterviewPrepPanel interview={interview} />
 
       <SessionsSection
         interviewId={interview.id}

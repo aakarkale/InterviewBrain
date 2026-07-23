@@ -11,6 +11,10 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/app/empty-state";
 import { PageHeader, SectionHeader } from "@/components/app/page-header";
 import { CompanyForm } from "@/components/vault/company-form";
+import { CompanyInsightsPanel } from "@/components/vault/company-insights-panel";
+
+// Company insight generation runs a web-search research pass (tens of seconds).
+export const maxDuration = 300;
 
 export async function generateMetadata({
   params,
@@ -60,6 +64,8 @@ export default async function CompanyPage({
           </span>
         ) : null}
       </div>
+
+      <CompanyInsightsPanel company={company} />
 
       <section className="flex flex-col gap-4">
         <SectionHeader title="Roles" description="Each role has its own JD, resume, round plan, and interviews." />

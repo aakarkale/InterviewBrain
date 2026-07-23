@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { getRound } from "@/lib/interviews/queries";
 import { PageHeader } from "@/components/app/page-header";
 import { RoundEditor } from "@/components/interviews/round-editor";
+import { RoundCoachingPanel } from "@/components/interviews/round-coaching-panel";
 
 // Saving a real-round outcome triggers background brain regeneration.
 export const maxDuration = 300;
@@ -56,6 +57,10 @@ export default async function RoundPage({
         description={`${company.name} · ${role.title}`}
       />
       <RoundEditor round={round} backHref={backHref} />
+
+      <div className="border-t pt-2">
+        <RoundCoachingPanel round={round} />
+      </div>
     </div>
   );
 }

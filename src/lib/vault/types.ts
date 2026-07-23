@@ -33,15 +33,17 @@ export function roundPlan(role: Pick<Role, "round_plan">): RoundPlanEntry[] {
 // A cited source captured from a web-search research pass.
 export type InsightSource = { title: string; url: string };
 
-// Cached, web-grounded company insights (companies.insights).
+// Cached, web-grounded company insights (companies.insights). Sources are the
+// real URLs captured from the web-search research pass, shown once for the whole
+// set (mapping each fact to a single URL isn't reliable).
 export type CompanyInsightSection = {
   key: string;
   title: string;
   body: string;
-  sources: InsightSource[];
 };
 export type CompanyInsights = {
   sections: CompanyInsightSection[];
+  sources: InsightSource[];
   generated_at: string;
 };
 
