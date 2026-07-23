@@ -2,7 +2,7 @@ import "server-only";
 
 import type Anthropic from "@anthropic-ai/sdk";
 
-import type { Application, DocumentRow, Round } from "@/lib/applications/queries";
+import type { Company, DocumentRow, Role, Round } from "@/lib/vault/types";
 import type { Story } from "@/lib/stories/types";
 
 // Per-document ceiling keeps a vault full of pasted transcripts from blowing
@@ -60,7 +60,8 @@ const TYPE_GUIDANCE: Record<string, string> = {
 
 export type InterviewerContext = {
   interviewType: string;
-  application: Application;
+  company: Company;
+  role: Role;
   documents: DocumentRow[];
   round: Round | null;
   roundCount: number;
@@ -79,7 +80,7 @@ function clip(text: string, max: number): string {
 function roundLabel(round: Round, roundCount: number): string {
   const parts = [
     `round ${round.round_number}${roundCount > 1 ? ` of ${roundCount} tracked rounds` : ""}`,
-    round.round_type.replace("_", " "),
+    round.round_name ?? round.round_type.replace("_", " "),
   ];
   if (round.interviewer_name) {
     parts.push(
@@ -105,15 +106,15 @@ function documentBlock(doc: DocumentRow): string {
 export function buildInterviewerPrompt(
   ctx: InterviewerContext
 ): Anthropic.TextBlockParam[] {
-  const { interviewType, application, documents, round, roundCount, stories } =
+  const { interviewType, company, role, documents, round, roundCount, stories } =
     ctx;
 
   const persona =
     round?.interviewer_name
-      ? `You are playing ${round.interviewer_name}${round.interviewer_role ? `, ${round.interviewer_role}` : ""} at ${application.company_name}.`
-      : `You are a senior interviewer at ${application.company_name}.`;
+      ? `You are playing ${round.interviewer_name}${round.interviewer_role ? `, ${round.interviewer_role}` : ""} at ${company.name}.`
+      : `You are a senior interviewer at ${company.name}.`;
 
-  const rules = `${persona} You are running a realistic text-based mock interview for the ${application.role_title} role. The candidate is practicing in a short stolen block between work meetings — make every exchange count.
+  const rules = `${persona} You are running a realistic text-based mock interview for the ${role.title} role. The candidate is practicing in a short stolen block between work meetings — make every exchange count.
 
 ${TYPE_GUIDANCE[interviewType] ?? TYPE_GUIDANCE.behavioral}
 
@@ -129,13 +130,13 @@ Hard rules:
 - Aim for a focused 8–12 question arc. If the candidate asks to stop, or the conversation reaches roughly 18 exchanges, wrap up: thank them and tell them to end the session to get their feedback.`;
 
   const contextParts: string[] = [
-    `## Application context\n\nCompany: ${application.company_name}\nRole: ${application.role_title}`,
+    `## Role context\n\nCompany: ${company.name}\nRole: ${role.title}`,
   ];
-  if (application.hiring_manager || application.team_name) {
+  if (role.hiring_manager || role.team_name) {
     contextParts.push(
       [
-        application.hiring_manager && `Hiring manager: ${application.hiring_manager}`,
-        application.team_name && `Team: ${application.team_name}`,
+        role.hiring_manager && `Hiring manager: ${role.hiring_manager}`,
+        role.team_name && `Team: ${role.team_name}`,
       ]
         .filter(Boolean)
         .join("\n")
@@ -147,8 +148,18 @@ Hard rules:
     );
   }
 
-  contextParts.push(`## Job description\n${application.job_description}`);
-  contextParts.push(`## Candidate resume\n${application.resume}`);
+  contextParts.push(`## Job description\n${role.job_description}`);
+  contextParts.push(`## Candidate resume\n${role.resume}`);
+  if (role.linkedin_profile) {
+    contextParts.push(
+      `## Candidate LinkedIn profile\n${clip(role.linkedin_profile, MAX_DOC_CHARS)}`
+    );
+  }
+  if (role.research_notes) {
+    contextParts.push(
+      `## Candidate research notes on this role\n${clip(role.research_notes, MAX_DOC_CHARS)}`
+    );
+  }
 
   if (documents.length > 0) {
     // Transcripts first: the model treats earlier context as table-setting,

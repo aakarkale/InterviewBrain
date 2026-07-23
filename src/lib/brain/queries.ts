@@ -16,9 +16,9 @@ export async function getInsights(): Promise<Insight[]> {
   return data ?? [];
 }
 
-// For each active insight, the distinct companies its evidence touches.
-// An insight spanning ≥2 companies is "cross-application" — the product's
-// aha, and what the brain view celebrates the first time it appears.
+// For each active insight, the distinct companies its evidence touches. An
+// insight spanning ≥2 companies is "cross-company" — the product's aha, and
+// what the brain view celebrates the first time it appears.
 export async function getCompaniesByInsight(): Promise<
   Record<string, string[]>
 > {
@@ -30,52 +30,86 @@ export async function getCompaniesByInsight(): Promise<
   if (error) throw error;
   if (!insights?.length) return {};
 
-  const ids = {
-    session: new Set<string>(),
-    round: new Set<string>(),
-    document: new Set<string>(),
-    application: new Set<string>(),
+  const ids: Record<string, Set<string>> = {
+    session: new Set(),
+    round: new Set(),
+    document: new Set(),
+    company: new Set(),
+    role: new Set(),
   };
   for (const ins of insights) {
     for (const ref of insightEvidence(ins as Insight)) {
-      ids[ref.source_type as keyof typeof ids]?.add(ref.source_id);
+      // Legacy "application" refs were remapped to "company" at backfill.
+      const key = ref.source_type === "application" ? "company" : ref.source_type;
+      ids[key]?.add(ref.source_id);
     }
   }
 
-  // Resolve every evidence source to its application's company name. Sessions,
-  // rounds, and documents reach it through their application_id FK.
-  const company = new Map<string, string>(); // `${type}:${id}` -> company
-  type Embedded = { id: string; applications: { company_name: string } | null };
-  const viaApplication: {
-    type: "session" | "round" | "document";
-    table: "sessions" | "rounds" | "documents";
-  }[] = [
-    { type: "session", table: "sessions" },
-    { type: "round", table: "rounds" },
-    { type: "document", table: "documents" },
-  ];
+  // Resolve every evidence source to its company name. Sessions and rounds reach
+  // it through interview → role → company; documents through role → company.
+  const company = new Map<string, string>(); // `${type}:${id}` -> company name
+  type ViaInterview = {
+    id: string;
+    interviews: { roles: { companies: { name: string } | null } | null } | null;
+  };
+  type ViaRole = {
+    id: string;
+    roles: { companies: { name: string } | null } | null;
+  };
 
   await Promise.all([
-    ...viaApplication.map(async ({ type, table }) => {
-      if (!ids[type].size) return;
-      const { data } = await supabase
-        .from(table)
-        .select("id, applications(company_name)")
-        .in("id", [...ids[type]]);
-      for (const row of (data ?? []) as unknown as Embedded[]) {
-        if (row.applications?.company_name) {
-          company.set(`${type}:${row.id}`, row.applications.company_name);
-        }
-      }
-    }),
     (async () => {
-      if (!ids.application.size) return;
+      if (!ids.session.size) return;
       const { data } = await supabase
-        .from("applications")
-        .select("id, company_name")
-        .in("id", [...ids.application]);
-      for (const a of data ?? []) {
-        company.set(`application:${a.id}`, a.company_name);
+        .from("sessions")
+        .select("id, interviews(roles(companies(name)))")
+        .in("id", [...ids.session]);
+      for (const row of (data ?? []) as unknown as ViaInterview[]) {
+        const name = row.interviews?.roles?.companies?.name;
+        if (name) company.set(`session:${row.id}`, name);
+      }
+    })(),
+    (async () => {
+      if (!ids.round.size) return;
+      const { data } = await supabase
+        .from("rounds")
+        .select("id, interviews(roles(companies(name)))")
+        .in("id", [...ids.round]);
+      for (const row of (data ?? []) as unknown as ViaInterview[]) {
+        const name = row.interviews?.roles?.companies?.name;
+        if (name) company.set(`round:${row.id}`, name);
+      }
+    })(),
+    (async () => {
+      if (!ids.document.size) return;
+      const { data } = await supabase
+        .from("documents")
+        .select("id, roles(companies(name))")
+        .in("id", [...ids.document]);
+      for (const row of (data ?? []) as unknown as ViaRole[]) {
+        const name = row.roles?.companies?.name;
+        if (name) company.set(`document:${row.id}`, name);
+      }
+    })(),
+    (async () => {
+      if (!ids.company.size) return;
+      const { data } = await supabase
+        .from("companies")
+        .select("id, name")
+        .in("id", [...ids.company]);
+      for (const c of data ?? []) company.set(`company:${c.id}`, c.name);
+    })(),
+    (async () => {
+      if (!ids.role.size) return;
+      const { data } = await supabase
+        .from("roles")
+        .select("id, companies(name)")
+        .in("id", [...ids.role]);
+      for (const r of (data ?? []) as unknown as {
+        id: string;
+        companies: { name: string } | null;
+      }[]) {
+        if (r.companies?.name) company.set(`role:${r.id}`, r.companies.name);
       }
     })(),
   ]);
@@ -84,7 +118,8 @@ export async function getCompaniesByInsight(): Promise<
   for (const ins of insights) {
     const companies = new Set<string>();
     for (const ref of insightEvidence(ins as Insight)) {
-      const name = company.get(`${ref.source_type}:${ref.source_id}`);
+      const key = ref.source_type === "application" ? "company" : ref.source_type;
+      const name = company.get(`${key}:${ref.source_id}`);
       if (name) companies.add(name);
     }
     if (companies.size) result[ins.id] = [...companies].sort();

@@ -32,7 +32,8 @@ export default async function SessionPage({
   const detail = await getSessionDetail(id);
   if (!detail) notFound();
 
-  const { session, application, round } = detail;
+  const { session, interview, role, company, round } = detail;
+  const backHref = `/interviews/${company.id}/roles/${role.id}/${interview.id}`;
   const transcript = parseTranscript(session.transcript);
 
   if (session.status === "completed") {
@@ -45,9 +46,9 @@ export default async function SessionPage({
     return (
       <SessionFeedback
         sessionId={session.id}
-        applicationId={application.id}
-        companyName={application.company_name}
-        roleTitle={application.role_title}
+        backHref={backHref}
+        companyName={company.name}
+        roleTitle={role.title}
         interviewType={session.interview_type}
         interviewLabel={interviewLabel(session.interview_type)}
         summary={session.feedback_summary}
@@ -61,20 +62,21 @@ export default async function SessionPage({
   return (
     <div className="flex flex-col gap-4">
       <Link
-        href={`/applications/${application.id}`}
+        href={backHref}
         className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
-        <ArrowLeft className="size-3.5" /> {application.company_name}
+        <ArrowLeft className="size-3.5" /> {company.name}
       </Link>
 
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-lg font-semibold tracking-[-0.01em]">
-          {application.company_name} mock
+          {company.name} mock
         </h1>
         <Badge variant="secondary">{interviewLabel(session.interview_type)}</Badge>
         {round ? (
           <Badge variant="outline">
-            Round {round.round_number} · {round.round_type.replace("_", " ")}
+            Round {round.round_number} ·{" "}
+            {round.round_name ?? round.round_type.replace("_", " ")}
           </Badge>
         ) : null}
       </div>

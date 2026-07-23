@@ -5,7 +5,16 @@ import type { Tables } from "@/lib/supabase/database.types";
 export type Insight = Tables<"insights">;
 
 export type EvidenceRef = {
-  source_type: "session" | "round" | "application" | "story" | "document";
+  source_type:
+    | "session"
+    | "round"
+    | "document"
+    | "story"
+    | "company"
+    | "role"
+    // legacy: pre-hierarchy insights cited "application"; the backfill remaps
+    // these to "company", but the reader tolerates strays.
+    | "application";
   source_id: string;
 };
 

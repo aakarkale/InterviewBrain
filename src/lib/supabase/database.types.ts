@@ -64,6 +64,53 @@ export type Database = {
           },
         ]
       }
+      companies: {
+        Row: {
+          created_at: string
+          h1b_tracking_enabled: boolean
+          id: string
+          insights: Json | null
+          insights_generated_at: string | null
+          insights_input_fingerprint: string | null
+          is_archived: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          h1b_tracking_enabled?: boolean
+          id?: string
+          insights?: Json | null
+          insights_generated_at?: string | null
+          insights_input_fingerprint?: string | null
+          is_archived?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          h1b_tracking_enabled?: boolean
+          id?: string
+          insights?: Json | null
+          insights_generated_at?: string | null
+          insights_input_fingerprint?: string | null
+          is_archived?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "companies_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       competencies: {
         Row: {
           id: string
@@ -84,31 +131,37 @@ export type Database = {
       }
       documents: {
         Row: {
-          application_id: string
+          application_id: string | null
           content: string
           created_at: string
           id: string
+          role_id: string | null
           title: string
           type: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
-          application_id: string
+          application_id?: string | null
           content: string
           created_at?: string
           id?: string
+          role_id?: string | null
           title: string
           type: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
-          application_id?: string
+          application_id?: string | null
           content?: string
           created_at?: string
           id?: string
+          role_id?: string | null
           title?: string
           type?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -116,6 +169,20 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -174,42 +241,201 @@ export type Database = {
           },
         ]
       }
-      rounds: {
+      interviews: {
         Row: {
-          application_id: string
           created_at: string
           id: string
+          label: string
+          legacy_application_id: string | null
+          prep: Json | null
+          prep_generated_at: string | null
+          prep_input_fingerprint: string | null
+          role_id: string
+          scheduled_date: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label?: string
+          legacy_application_id?: string | null
+          prep?: Json | null
+          prep_generated_at?: string | null
+          prep_input_fingerprint?: string | null
+          role_id: string
+          scheduled_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          legacy_application_id?: string | null
+          prep?: Json | null
+          prep_generated_at?: string | null
+          prep_input_fingerprint?: string | null
+          role_id?: string
+          scheduled_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interviews_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          alignment: Json | null
+          alignment_generated_at: string | null
+          alignment_input_fingerprint: string | null
+          company_id: string
+          created_at: string
+          hiring_manager: string | null
+          id: string
+          is_archived: boolean
+          job_description: string
+          legacy_application_id: string | null
+          linkedin_profile: string | null
+          research_notes: string | null
+          resume: string
+          round_plan: Json
+          team_name: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alignment?: Json | null
+          alignment_generated_at?: string | null
+          alignment_input_fingerprint?: string | null
+          company_id: string
+          created_at?: string
+          hiring_manager?: string | null
+          id?: string
+          is_archived?: boolean
+          job_description: string
+          legacy_application_id?: string | null
+          linkedin_profile?: string | null
+          research_notes?: string | null
+          resume: string
+          round_plan?: Json
+          team_name?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alignment?: Json | null
+          alignment_generated_at?: string | null
+          alignment_input_fingerprint?: string | null
+          company_id?: string
+          created_at?: string
+          hiring_manager?: string | null
+          id?: string
+          is_archived?: boolean
+          job_description?: string
+          legacy_application_id?: string | null
+          linkedin_profile?: string | null
+          research_notes?: string | null
+          resume?: string
+          round_plan?: Json
+          team_name?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rounds: {
+        Row: {
+          application_id: string | null
+          coaching: Json | null
+          coaching_generated_at: string | null
+          created_at: string
+          id: string
+          interview_id: string | null
           interviewer_name: string | null
           interviewer_role: string | null
           outcome: string
           post_round_notes: string | null
+          round_name: string | null
           round_number: number
           round_type: string
           scheduled_date: string | null
+          summary: string | null
+          transcript: string | null
+          user_id: string | null
         }
         Insert: {
-          application_id: string
+          application_id?: string | null
+          coaching?: Json | null
+          coaching_generated_at?: string | null
           created_at?: string
           id?: string
+          interview_id?: string | null
           interviewer_name?: string | null
           interviewer_role?: string | null
           outcome?: string
           post_round_notes?: string | null
+          round_name?: string | null
           round_number: number
           round_type: string
           scheduled_date?: string | null
+          summary?: string | null
+          transcript?: string | null
+          user_id?: string | null
         }
         Update: {
-          application_id?: string
+          application_id?: string | null
+          coaching?: Json | null
+          coaching_generated_at?: string | null
           created_at?: string
           id?: string
+          interview_id?: string | null
           interviewer_name?: string | null
           interviewer_role?: string | null
           outcome?: string
           post_round_notes?: string | null
+          round_name?: string | null
           round_number?: number
           round_type?: string
           scheduled_date?: string | null
+          summary?: string | null
+          transcript?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -219,15 +445,30 @@ export type Database = {
             referencedRelation: "applications"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "rounds_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rounds_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       sessions: {
         Row: {
-          application_id: string
+          application_id: string | null
           completed_at: string | null
           created_at: string
           feedback_summary: string | null
           id: string
+          interview_id: string | null
           interview_type: string
           round_id: string | null
           rubric_scores: Json | null
@@ -236,11 +477,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          application_id: string
+          application_id?: string | null
           completed_at?: string | null
           created_at?: string
           feedback_summary?: string | null
           id?: string
+          interview_id?: string | null
           interview_type: string
           round_id?: string | null
           rubric_scores?: Json | null
@@ -249,11 +491,12 @@ export type Database = {
           user_id: string
         }
         Update: {
-          application_id?: string
+          application_id?: string | null
           completed_at?: string | null
           created_at?: string
           feedback_summary?: string | null
           id?: string
+          interview_id?: string | null
           interview_type?: string
           round_id?: string | null
           rubric_scores?: Json | null
@@ -267,6 +510,13 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
             referencedColumns: ["id"]
           },
           {

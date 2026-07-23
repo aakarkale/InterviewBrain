@@ -50,7 +50,9 @@ function evidenceSummary(insight: Insight): string {
   const label: Record<string, [string, string]> = {
     session: ["practice session", "practice sessions"],
     round: ["real round", "real rounds"],
-    application: ["interview", "interviews"],
+    company: ["company", "companies"],
+    role: ["role", "roles"],
+    application: ["company", "companies"],
     story: ["story", "stories"],
     document: ["document", "documents"],
   };

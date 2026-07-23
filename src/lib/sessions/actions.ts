@@ -4,38 +4,27 @@ import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth/require-user";
+import { field, type ActionState } from "@/lib/forms";
 import { INTERVIEW_TYPES } from "@/lib/applications/constants";
 import { scoreSession } from "@/lib/ai/scorer";
 import { regenerateBrain } from "@/lib/brain/extract";
 import { MAX_SESSIONS_PER_MONTH } from "./constants";
 
-export type ActionState = { error: string | null; success?: boolean };
+export type { ActionState };
 
 const INTERVIEW_TYPE_VALUES: string[] = INTERVIEW_TYPES.map((t) => t.value);
-
-function field(formData: FormData, key: string): string {
-  return String(formData.get(key) ?? "").trim();
-}
-
-async function requireUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-  return { supabase, user };
-}
+const INTERVIEW_ROUTE = "/interviews/[companyId]/roles/[roleId]/[interviewId]";
 
 export async function startSession(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const application_id = field(formData, "application_id");
+  const interview_id = field(formData, "interview_id");
   const interview_type = field(formData, "interview_type");
   const round_id = field(formData, "round_id");
 
-  if (!application_id) return { error: "Missing application." };
+  if (!interview_id) return { error: "Missing interview." };
   if (!INTERVIEW_TYPE_VALUES.includes(interview_type)) {
     return { error: "Pick an interview type." };
   }
@@ -58,25 +47,26 @@ export async function startSession(
     };
   }
 
-  // RLS hides other users' applications, so this also verifies ownership.
-  const { data: application } = await supabase
-    .from("applications")
-    .select("id, is_archived")
-    .eq("id", application_id)
+  // RLS hides other users' interviews, so this also verifies ownership.
+  const { data: interview } = await supabase
+    .from("interviews")
+    .select("id, roles(is_archived)")
+    .eq("id", interview_id)
     .maybeSingle();
 
-  if (!application) return { error: "Interview not found." };
-  if (application.is_archived) {
-    return { error: "Unarchive this interview to practice for it." };
+  if (!interview) return { error: "Interview not found." };
+  const roleRel = interview.roles as { is_archived: boolean } | null;
+  if (roleRel?.is_archived) {
+    return { error: "Unarchive this role to practice for it." };
   }
 
   if (round_id) {
     const { data: round } = await supabase
       .from("rounds")
-      .select("id, application_id")
+      .select("id, interview_id")
       .eq("id", round_id)
       .maybeSingle();
-    if (!round || round.application_id !== application_id) {
+    if (!round || round.interview_id !== interview_id) {
       return { error: "That round doesn't belong to this interview." };
     }
   }
@@ -85,7 +75,7 @@ export async function startSession(
     .from("sessions")
     .insert({
       user_id: user.id,
-      application_id,
+      interview_id,
       round_id: round_id || null,
       interview_type,
     })
@@ -94,7 +84,7 @@ export async function startSession(
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/applications/${application_id}`);
+  revalidatePath(INTERVIEW_ROUTE, "page");
   redirect(`/sessions/${session.id}`);
 }
 
@@ -109,7 +99,7 @@ export async function completeSession(
 
   const { data: session } = await supabase
     .from("sessions")
-    .select("id, application_id, status, transcript")
+    .select("id, status")
     .eq("id", id)
     .maybeSingle();
 
@@ -126,16 +116,14 @@ export async function completeSession(
   if (error) return { error: error.message };
 
   // Score inline so the feedback view has results on first load. Brain
-  // regeneration is heavier and the user doesn't need it to read their own
-  // session feedback, so it runs after the response (event-driven trigger:
-  // session completion).
+  // regeneration is heavier and runs after the response.
   await scoreSession(id);
   after(async () => {
     await regenerateBrain();
   });
 
   revalidatePath(`/sessions/${id}`);
-  revalidatePath(`/applications/${session.application_id}`);
+  revalidatePath(INTERVIEW_ROUTE, "page");
   revalidatePath("/dashboard");
   revalidatePath("/brain");
   return { error: null, success: true };
