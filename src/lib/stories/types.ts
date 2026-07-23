@@ -7,6 +7,15 @@ import type { Tables } from "@/lib/supabase/database.types";
 export type Story = Tables<"stories">;
 export type Competency = Tables<"competencies">;
 
+// An AI-shaped story (drafted from a session answer) before the user edits and
+// saves it. Lives here — not in the server-only draft module — so Client
+// Components can hold it in state.
+export type StoryDraft = {
+  title: string;
+  content: string;
+  competency_tags: string[];
+};
+
 // competency_tags is stored as a jsonb array of competency id strings.
 // Only this field is read, so any row carrying it (incl. partial selects) works.
 export function storyTags(story: Pick<Story, "competency_tags">): string[] {
