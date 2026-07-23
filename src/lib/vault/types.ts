@@ -47,13 +47,25 @@ export type CompanyInsights = {
   generated_at: string;
 };
 
-// Cached role-alignment insights (roles.alignment).
+// How well one JD requirement is evidenced in the candidate's material.
+export type RequirementCoverage = {
+  requirement: string;
+  coverage: "strong" | "partial" | "missing";
+  evidence: string; // the concrete resume/LinkedIn detail behind the verdict
+};
+
+// Cached role-alignment insights (roles.alignment). `requirements`,
+// `keyword_gaps`, and `actions` were added with the resume↔JD matcher; older
+// cached rows may lack them, so readers default to [].
 export type RoleAlignment = {
   fit_score: number; // 0–100
   summary: string;
+  requirements: RequirementCoverage[];
+  keyword_gaps: string[]; // ATS-style skills/terms in the JD, missing from the resume
   strengths: string[];
   gaps: string[];
   talking_points: string[];
+  actions: string[]; // concrete next steps to close the gaps
   sources: InsightSource[];
   generated_at: string;
 };
