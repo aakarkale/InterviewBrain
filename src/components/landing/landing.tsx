@@ -3,12 +3,12 @@
 import { useRef } from "react";
 import Link from "next/link";
 import {
-  BookOpenText,
   Brain,
-  ClipboardCheck,
-  FolderOpen,
+  Building2,
+  Globe,
   ListChecks,
   MessageSquareText,
+  Target,
 } from "lucide-react";
 
 import { Starburst } from "./starburst";
@@ -17,54 +17,54 @@ import { useLandingMotion } from "./use-landing-motion";
 
 const LOOP_STEPS = [
   {
-    title: "Store",
-    body: "Drop the JD, your tailored resume, research notes, and call transcripts into one vault per interview.",
+    title: "Research",
+    body: "Build a vault per company and role. Paste the JD and your resume, and get web-researched company insights plus an honest read on how you fit.",
   },
   {
     title: "Practice",
-    body: "Run a text mock interview built from that vault — your real materials, the actual round you're facing.",
+    body: "Run a text mock interview built from that vault — your real materials, the specific round you're facing.",
   },
   {
     title: "Learn",
-    body: "Rubric-scored feedback writes back into the brain after every session — and every real round you log.",
+    body: "Rubric-scored feedback writes back into your brain after every mock — and every real round you log, notes or transcript.",
   },
   {
     title: "Repeat, smarter",
-    body: "The next session opens already knowing your weak spots, across every company you're talking to.",
+    body: "Your next mock and your next interview open already knowing your weak spots, across every company you're talking to.",
   },
 ];
 
 const TILES = [
   {
-    icon: FolderOpen,
-    title: "Interview vault",
-    body: "JD, tailored resume, recruiter notes, call transcripts — one place per company, all of it feeding the interviewer.",
+    icon: Building2,
+    title: "Company Vault",
+    body: "One vault per company, with your roles inside it. JD, tailored resume, research, and call transcripts — everything the interviewer and the brain read.",
   },
   {
-    icon: ListChecks,
-    title: "Round tracking",
-    body: "Log each round's interviewer, outcome, and what actually happened. Real interviews teach the brain too.",
+    icon: Globe,
+    title: "Company insights, cited",
+    body: "AI researches each company from the live web — funding, leadership, and H-1B sponsorship — with every claim linked back to its source.",
+    amber: true,
+  },
+  {
+    icon: Target,
+    title: "Role-fit analysis",
+    body: "See how your resume and LinkedIn line up with the role: your real strengths, the honest gaps, and what to emphasize.",
   },
   {
     icon: MessageSquareText,
-    title: "Mocks in context",
-    body: "Text interviews prompted with your resume, the JD, and the context of your specific next round.",
+    title: "Mocks, scored",
+    body: "Text interviews prompted with your resume, the JD, and your exact next round — each one scored against a fixed competency rubric.",
   },
   {
-    icon: ClipboardCheck,
-    title: "Rubric-scored feedback",
-    body: "Every session is scored against a fixed competency rubric, so progress is comparable across companies.",
+    icon: ListChecks,
+    title: "Round-to-round coaching",
+    body: "Log what happened in each real round, then get coached into the next one from your own notes and transcript.",
   },
   {
     icon: Brain,
     title: "The cross-company brain",
-    body: "Pattern detection across all your interviews, surfaced as plain-language insights — with receipts.",
-  },
-  {
-    icon: BookOpenText,
-    title: "Story bank",
-    body: "Your STAR stories, written once, reused everywhere, and linked to competencies automatically.",
-    amber: true,
+    body: "Pattern detection across every mock and real round, surfaced as plain-language insights — with the receipts.",
   },
 ];
 
@@ -118,9 +118,10 @@ export function Landing() {
                 <span className="l-headline-accent">remembers.</span>
               </h1>
               <p className="l-sub" data-hero-item>
-                Keep each interview&apos;s research in one vault. Run mock
-                interviews built from it. Get feedback that knows what you
-                fumbled last week — at every other company too.
+                A vault for every company, AI research on the role and how you
+                fit, and mock interviews built from your real materials — with
+                feedback that remembers what you fumbled last week, everywhere
+                you&apos;re interviewing.
               </p>
               <div className="l-hero-cta" data-hero-item>
                 <Link href="/signup" className="l-btn l-btn-solid l-btn-lg">
@@ -262,8 +263,7 @@ export function Landing() {
               Walk in already warmed up.
             </h2>
             <p data-reveal>
-              Free while in beta — 3 active interviews, 10 practice sessions
-              a month.
+              Free while in beta — 3 active roles, 10 practice sessions a month.
             </p>
             <div data-reveal>
               <Link href="/signup" className="l-btn l-btn-solid l-btn-lg">
