@@ -10,10 +10,15 @@ import type { RubricScores } from "@/lib/ai/scorer";
 import type { ChatMessage } from "@/lib/sessions/constants";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SaveStory, type SavableAnswer } from "./save-story";
 
 type Competency = { id: string; name: string };
 
 const initialState: ActionState = { error: null };
+
+// Only offer to save answers with enough substance to be a real STAR story —
+// "Yes, at Stripe" is not a story.
+const MIN_ANSWER_CHARS = 200;
 
 const SCORE_LABEL: Record<number, string> = {
   1: "Serious concerns",
@@ -23,11 +28,30 @@ const SCORE_LABEL: Record<number, string> = {
   5: "Exceptional",
 };
 
+// Candidate answers worth offering as stories, each paired with the
+// interviewer question it answered (nearest prior assistant turn).
+function savableAnswers(transcript: ChatMessage[]): SavableAnswer[] {
+  const answers: SavableAnswer[] = [];
+  transcript.forEach((m, index) => {
+    if (m.role !== "user" || m.content.trim().length < MIN_ANSWER_CHARS) return;
+    let question = "";
+    for (let i = index - 1; i >= 0; i--) {
+      if (transcript[i].role === "assistant") {
+        question = transcript[i].content;
+        break;
+      }
+    }
+    answers.push({ index, question, answer: m.content });
+  });
+  return answers;
+}
+
 export function SessionFeedback({
   sessionId,
   applicationId,
   companyName,
   roleTitle,
+  interviewType,
   interviewLabel,
   summary,
   rubricScores,
@@ -38,6 +62,7 @@ export function SessionFeedback({
   applicationId: string;
   companyName: string;
   roleTitle: string;
+  interviewType: string;
   interviewLabel: string;
   summary: string | null;
   rubricScores: RubricScores;
@@ -50,6 +75,11 @@ export function SessionFeedback({
   useEffect(() => {
     if (state.error) toast.error(state.error);
   }, [state]);
+
+  // STAR stories come out of behavioral mocks (the interviewer only draws on
+  // the story bank for behavioral sessions).
+  const answers =
+    interviewType === "behavioral" ? savableAnswers(transcript) : [];
 
   const nameById = new Map(competencies.map((c) => [c.id, c.name]));
   const scored = Object.entries(rubricScores)
@@ -166,6 +196,14 @@ export function SessionFeedback({
           </form>
         </div>
       )}
+
+      {answers.length > 0 ? (
+        <SaveStory
+          sessionId={sessionId}
+          answers={answers}
+          competencies={competencies}
+        />
+      ) : null}
 
       <section className="flex flex-col gap-2">
         <button

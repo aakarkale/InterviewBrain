@@ -48,6 +48,7 @@ export default async function SessionPage({
         applicationId={application.id}
         companyName={application.company_name}
         roleTitle={application.role_title}
+        interviewType={session.interview_type}
         interviewLabel={interviewLabel(session.interview_type)}
         summary={session.feedback_summary}
         rubricScores={(session.rubric_scores as RubricScores) ?? {}}
