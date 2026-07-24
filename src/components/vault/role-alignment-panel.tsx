@@ -15,9 +15,11 @@ import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/app/page-header";
 import { ResumeUpload } from "@/components/vault/resume-upload";
 
-// Fallback estimate/timeout; the POST response overrides the estimate.
+// Fallback estimate; the POST response overrides it. The poll timeout matches
+// the route's maxDuration so the client never gives up while the background
+// job could still be running.
 const ESTIMATE_SECONDS = 45;
-const MAX_WAIT_SECONDS = 180;
+const MAX_WAIT_SECONDS = 300;
 
 const COVERAGE: Record<
   RequirementCoverage["coverage"],
@@ -144,6 +146,7 @@ export function RoleAlignmentPanel({ role }: { role: Role }) {
           });
           if (res.ok) {
             const data = await res.json();
+            if (stop) return; // unmounted / finished while awaiting
             const gen: string | null = data?.generated_at ?? null;
             if (gen && gen !== baselineRef.current) {
               stop = true;

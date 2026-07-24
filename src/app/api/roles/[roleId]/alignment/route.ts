@@ -115,7 +115,7 @@ export async function POST(
       if (!result) return; // leave the timestamp unchanged → client times out
 
       const generated_at = new Date().toISOString();
-      await supabase
+      const { error } = await supabase
         .from("roles")
         .update({
           alignment: { ...result, sources: [], generated_at },
@@ -123,6 +123,10 @@ export async function POST(
           alignment_input_fingerprint: fp,
         })
         .eq("id", roleId);
+
+      // On a write failure the timestamp never advances, so the client's poll
+      // times out and prompts a retry — nothing else to recover here.
+      if (error) return;
 
       // Refresh any cached render of the role page for navigations elsewhere;
       // the originating client also router.refresh()es when its poll succeeds.
