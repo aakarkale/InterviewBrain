@@ -69,10 +69,10 @@ export function ResumeUpload({
         <form action={saveAction} className="flex flex-col gap-2">
           <input type="hidden" name="role_id" value={roleId} />
           <input type="hidden" name="company_id" value={companyId} />
-          <Label htmlFor="resume">Review the extracted text</Label>
+          <Label htmlFor="resume-extracted">Review the extracted text</Label>
           <Textarea
             key={extractState.text}
-            id="resume"
+            id="resume-extracted"
             name="resume"
             defaultValue={extractState.text}
             className="min-h-40"
