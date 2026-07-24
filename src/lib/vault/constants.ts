@@ -35,3 +35,7 @@ export const INTERVIEW_STATUS_VALUES: string[] = INTERVIEW_STATUSES.map(
 // Shown next to the LinkedIn field so users know how to produce the PDF export.
 export const LINKEDIN_PDF_HINT =
   "On your LinkedIn profile, open the “More” menu → “Save to PDF”, then upload it here. We only store the extracted text.";
+
+// Shown next to the resume upload so users know what to expect.
+export const RESUME_PDF_HINT =
+  "Upload your resume as a PDF and we’ll pull out the text for you to review before saving. We only store the extracted text, and a stronger resume ↔ JD match runs the next time you analyze fit.";

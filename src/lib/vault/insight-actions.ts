@@ -143,15 +143,17 @@ export async function generateRoleAlignmentAction(
   return { error: null, success: true };
 }
 
-// -------------------------------------------------- LinkedIn PDF extraction
+// ----------------------------------------------------------- PDF extraction
 
 const MAX_PDF_BYTES = 10 * 1024 * 1024;
 
-// Extract readable text from an uploaded LinkedIn "Save to PDF" export. Returns
-// the text for the user to review before saving — never stores the binary.
-export async function extractLinkedinPdfAction(
-  _prev: { error: string | null; text?: string },
-  formData: FormData
+// Shared: send an uploaded PDF as a base64 document block and pull clean plain
+// text back out. Callers pass a content-specific instruction. Never stores the
+// binary — only the extracted text is returned for the user to review.
+async function extractPdfText(
+  formData: FormData,
+  instruction: string,
+  softFail: string
 ): Promise<{ error: string | null; text?: string }> {
   await requireUser();
   const file = formData.get("file");
@@ -180,10 +182,7 @@ export async function extractLinkedinPdfAction(
               type: "document",
               source: { type: "base64", media_type: "application/pdf", data: b64 },
             },
-            {
-              type: "text",
-              text: "Extract the readable text of this LinkedIn profile as clean plain text (headline, about, experience, education, skills). No commentary, just the profile content.",
-            },
+            { type: "text", text: instruction },
           ],
         },
       ],
@@ -196,8 +195,32 @@ export async function extractLinkedinPdfAction(
     if (!text) return { error: "Couldn't read any text from that PDF." };
     return { error: null, text };
   } catch {
-    return { error: "Couldn't process that PDF — paste your profile text instead." };
+    return { error: softFail };
   }
+}
+
+// Extract readable text from an uploaded LinkedIn "Save to PDF" export.
+export async function extractLinkedinPdfAction(
+  _prev: { error: string | null; text?: string },
+  formData: FormData
+): Promise<{ error: string | null; text?: string }> {
+  return extractPdfText(
+    formData,
+    "Extract the readable text of this LinkedIn profile as clean plain text (headline, about, experience, education, skills). No commentary, just the profile content.",
+    "Couldn't process that PDF — paste your profile text instead."
+  );
+}
+
+// Extract readable text from an uploaded resume PDF.
+export async function extractResumePdfAction(
+  _prev: { error: string | null; text?: string },
+  formData: FormData
+): Promise<{ error: string | null; text?: string }> {
+  return extractPdfText(
+    formData,
+    "Extract the full readable text of this resume as clean plain text — preserve section headings, job titles, companies, dates, bullet points, and skills, in reading order. No commentary, just the resume content.",
+    "Couldn't process that PDF — paste your resume text instead."
+  );
 }
 
 // Save reviewed LinkedIn text onto the role (used by the upload widget after the
@@ -216,6 +239,26 @@ export async function saveRoleLinkedin(
     .from("roles")
     .update({ linkedin_profile })
     .eq("id", role_id);
+  if (error) return { error: error.message };
+
+  if (company_id) revalidatePath(`/vault/${company_id}/roles/${role_id}`);
+  return { error: null, success: true };
+}
+
+// Save reviewed resume text onto the role. Resume is required for the role, so
+// this only overwrites when non-empty text is provided.
+export async function saveRoleResume(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const role_id = field(formData, "role_id");
+  const company_id = field(formData, "company_id");
+  if (!role_id) return { error: "Missing role." };
+  const resume = String(formData.get("resume") ?? "").trim();
+  if (!resume) return { error: "Nothing to save — the resume text is empty." };
+
+  const { supabase } = await requireUser();
+  const { error } = await supabase.from("roles").update({ resume }).eq("id", role_id);
   if (error) return { error: error.message };
 
   if (company_id) revalidatePath(`/vault/${company_id}/roles/${role_id}`);
