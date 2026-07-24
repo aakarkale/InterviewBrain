@@ -7,16 +7,7 @@ import { field, type ActionState } from "@/lib/forms";
 import { anthropic, MODEL } from "@/lib/ai/client";
 import { MAX_COMPANY_INSIGHT_GENERATIONS_PER_MONTH } from "./constants";
 import { generateCompanyInsights } from "./company-insights";
-import { generateRoleAlignment } from "./role-alignment";
-
-// Cheap deterministic fingerprint so we don't re-run (and re-bill) a generator
-// when its inputs are unchanged.
-function fingerprint(...parts: (string | boolean | null | undefined)[]): string {
-  const s = parts.map((p) => String(p ?? "")).join("|");
-  let h = 5381;
-  for (let i = 0; i < s.length; i++) h = (((h << 5) + h) ^ s.charCodeAt(i)) >>> 0;
-  return h.toString(36);
-}
+import { fingerprint } from "./fingerprint";
 
 function monthStartISO(): string {
   const now = new Date();
@@ -87,61 +78,9 @@ export async function generateCompanyInsightsAction(
   return { error: null, success: true };
 }
 
-// ----------------------------------------------------------- role alignment
-
-export async function generateRoleAlignmentAction(
-  _prev: ActionState,
-  formData: FormData
-): Promise<ActionState> {
-  const role_id = field(formData, "role_id");
-  const force = field(formData, "force") === "true";
-  if (!role_id) return { error: "Missing role." };
-
-  const { supabase } = await requireUser();
-  const { data: role } = await supabase
-    .from("roles")
-    .select(
-      "id, company_id, title, job_description, resume, linkedin_profile, research_notes, alignment, alignment_input_fingerprint, companies(name)"
-    )
-    .eq("id", role_id)
-    .maybeSingle();
-  if (!role) return { error: "Role not found." };
-
-  const fp = fingerprint(
-    role.job_description,
-    role.resume,
-    role.linkedin_profile,
-    role.research_notes
-  );
-  if (!force && role.alignment && role.alignment_input_fingerprint === fp) {
-    return { error: null, success: true };
-  }
-
-  const companyName = (role.companies as { name: string } | null)?.name ?? "the company";
-  const result = await generateRoleAlignment({
-    companyName,
-    roleTitle: role.title,
-    jobDescription: role.job_description,
-    resume: role.resume,
-    linkedin: role.linkedin_profile,
-    research: role.research_notes,
-  });
-  if (!result) return { error: "Couldn't analyze alignment right now — try again." };
-
-  const generated_at = new Date().toISOString();
-  const { error } = await supabase
-    .from("roles")
-    .update({
-      alignment: { ...result, sources: [], generated_at },
-      alignment_generated_at: generated_at,
-      alignment_input_fingerprint: fp,
-    })
-    .eq("id", role_id);
-  if (error) return { error: error.message };
-
-  revalidatePath("/vault/[companyId]/roles/[roleId]", "page");
-  return { error: null, success: true };
-}
+// Role-alignment generation moved to a background Route Handler
+// (src/app/api/roles/[roleId]/alignment/route.ts) so the two-pass AI match runs
+// off the server-action path and never blocks the client's router.
 
 // ----------------------------------------------------------- PDF extraction
 

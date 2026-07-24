@@ -1,11 +1,10 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
-import { Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2, RefreshCw, Sparkles, Upload } from "lucide-react";
 import { toast } from "sonner";
 
-import { generateRoleAlignmentAction } from "@/lib/vault/insight-actions";
-import type { ActionState } from "@/lib/forms";
 import {
   asRoleAlignment,
   type RequirementCoverage,
@@ -14,8 +13,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/app/page-header";
+import { ResumeUpload } from "@/components/vault/resume-upload";
 
-const initialState: ActionState = { error: null };
+// Fallback estimate; the POST response overrides it. The poll timeout matches
+// the route's maxDuration so the client never gives up while the background
+// job could still be running.
+const ESTIMATE_SECONDS = 45;
+const MAX_WAIT_SECONDS = 300;
 
 const COVERAGE: Record<
   RequirementCoverage["coverage"],
@@ -77,15 +81,101 @@ function Requirements({ items }: { items: RequirementCoverage[] }) {
 }
 
 export function RoleAlignmentPanel({ role }: { role: Role }) {
-  const [state, action, pending] = useActionState(
-    generateRoleAlignmentAction,
-    initialState
-  );
+  const router = useRouter();
   const alignment = asRoleAlignment(role.alignment);
 
+  // "starting" = POST in flight; "pending" = running in the background, polling.
+  const [phase, setPhase] = useState<"idle" | "starting" | "pending">("idle");
+  const [estimate, setEstimate] = useState(ESTIMATE_SECONDS);
+  const [elapsed, setElapsed] = useState(0);
+  const [showUpload, setShowUpload] = useState(false);
+  const baselineRef = useRef<string | null>(null);
+
+  const busy = phase !== "idle";
+
+  const onAnalyze = useCallback(async () => {
+    if (phase !== "idle") return;
+    setPhase("starting");
+    try {
+      const res = await fetch(`/api/roles/${role.id}/alignment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ force: Boolean(alignment) }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Couldn't start the analysis.");
+
+      if (data.status === "fresh") {
+        router.refresh();
+        setPhase("idle");
+        return;
+      }
+
+      baselineRef.current = data.baseline_generated_at ?? null;
+      setEstimate(
+        typeof data.estimate_seconds === "number" ? data.estimate_seconds : ESTIMATE_SECONDS
+      );
+      setElapsed(0);
+      setPhase("pending");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't start the analysis.");
+      setPhase("idle");
+    }
+  }, [phase, role.id, alignment, router]);
+
+  // While pending, tick a countdown every second and poll for completion every
+  // few seconds. Detection is by the alignment timestamp advancing past the
+  // baseline captured at start — the generation runs server-side regardless of
+  // this tab, so navigating away and back still lands on the fresh result.
   useEffect(() => {
-    if (state.error) toast.error(state.error);
-  }, [state]);
+    if (phase !== "pending") return;
+    let stop = false;
+    let secs = 0;
+
+    // Setting phase to "idle" re-runs this effect, whose cleanup clears the
+    // interval — so we never need the interval id inside the tick itself.
+    const id = setInterval(async () => {
+      if (stop) return;
+      secs += 1;
+      setElapsed(secs);
+
+      if (secs % 3 === 0) {
+        try {
+          const res = await fetch(`/api/roles/${role.id}/alignment`, {
+            cache: "no-store",
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (stop) return; // unmounted / finished while awaiting
+            const gen: string | null = data?.generated_at ?? null;
+            if (gen && gen !== baselineRef.current) {
+              stop = true;
+              setElapsed(0);
+              setPhase("idle");
+              router.refresh();
+              return;
+            }
+          }
+        } catch {
+          // transient — keep polling
+        }
+      }
+
+      if (secs >= MAX_WAIT_SECONDS) {
+        stop = true;
+        setElapsed(0);
+        setPhase("idle");
+        toast.error(
+          "This is taking longer than usual — refresh the page in a moment to see your analysis."
+        );
+      }
+    }, 1000);
+
+    return () => {
+      stop = true;
+      clearInterval(id);
+    };
+  }, [phase, role.id, router]);
 
   const scoreColor =
     alignment && alignment.fit_score >= 70
@@ -99,37 +189,79 @@ export function RoleAlignmentPanel({ role }: { role: Role }) {
   const keywordGaps = alignment?.keyword_gaps ?? [];
   const actions = alignment?.actions ?? [];
 
+  const remaining = Math.max(0, estimate - elapsed);
+  const etaLabel =
+    phase === "starting"
+      ? "starting…"
+      : remaining > 0
+        ? `~${remaining}s`
+        : "wrapping up…";
+
   return (
     <section className="flex flex-col gap-4">
       <SectionHeader
         title="How you align"
         description="A rigorous resume ↔ JD match — requirement-by-requirement coverage, keyword gaps, and what to do next."
         actions={
-          <form action={action}>
-            <input type="hidden" name="role_id" value={role.id} />
-            <input type="hidden" name="force" value={alignment ? "true" : "false"} />
-            <Button type="submit" variant="outline" size="sm" disabled={pending}>
-              {pending ? (
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowUpload((v) => !v)}
+            >
+              <Upload />
+              Upload resume
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onAnalyze}
+              disabled={busy}
+            >
+              {busy ? (
                 <Loader2 className="animate-spin" />
               ) : alignment ? (
                 <RefreshCw />
               ) : (
                 <Sparkles />
               )}
-              {pending ? "Analyzing…" : alignment ? "Refresh" : "Analyze fit"}
+              {busy ? "Analyzing…" : alignment ? "Refresh" : "Analyze fit"}
             </Button>
-          </form>
+            {busy ? (
+              <span className="text-sm text-muted-foreground tabular-nums">
+                ({etaLabel})
+              </span>
+            ) : null}
+          </div>
         }
       />
 
+      {showUpload ? (
+        <div className="flex flex-col gap-3 rounded-lg border bg-surface-0/40 p-4">
+          <p className="text-sm text-muted-foreground">
+            Upload the resume you&apos;re using for this role. We extract the text for
+            you to review, save it to the role, then you can analyze the match.
+          </p>
+          <ResumeUpload roleId={role.id} companyId={role.company_id} />
+        </div>
+      ) : null}
+
       {!alignment ? (
         <p className="rounded-lg border border-dashed bg-surface-0/40 px-4 py-6 text-center text-sm text-muted-foreground">
-          {pending
-            ? "Matching your resume against the JD, requirement by requirement…"
+          {busy
+            ? "Matching your resume against the JD in the background — you can keep working; this updates when it's done."
             : "Upload or paste your resume, then analyze how it matches this JD — per-requirement coverage, ATS keyword gaps, and concrete next steps."}
         </p>
       ) : (
         <div className="flex flex-col gap-4 rounded-lg border bg-card p-4">
+          {busy ? (
+            <p className="rounded-md border border-dashed bg-surface-0/40 px-3 py-2 text-xs text-muted-foreground">
+              Re-analyzing in the background — you can navigate away; this refreshes
+              when it&apos;s done.
+            </p>
+          ) : null}
           <div className="flex items-start justify-between gap-4">
             <p className="text-sm leading-relaxed">{alignment.summary}</p>
             <div className="flex shrink-0 flex-col items-end gap-0.5">
