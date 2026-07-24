@@ -12,7 +12,6 @@ import { RoleForm } from "@/components/vault/role-form";
 import { RoundPlanEditor } from "@/components/vault/round-plan-editor";
 import { DocumentsSection } from "@/components/vault/documents-section";
 import { RoleAlignmentPanel } from "@/components/vault/role-alignment-panel";
-import { ResumeUpload } from "@/components/vault/resume-upload";
 import { LinkedinUpload } from "@/components/vault/linkedin-upload";
 
 // Role-alignment generation runs an AI pass (can take tens of seconds).
@@ -83,10 +82,7 @@ export default async function RolePage({
           Edit role (JD, resume, LinkedIn, research)
         </summary>
         <div className="flex flex-col gap-5 border-t px-4 py-4">
-          <ResumeUpload roleId={role.id} companyId={company.id} />
-          <div className="border-t pt-5">
-            <LinkedinUpload roleId={role.id} companyId={company.id} />
-          </div>
+          <LinkedinUpload roleId={role.id} companyId={company.id} />
           <div className="border-t pt-5">
             <RoleForm companyId={company.id} role={role} />
           </div>
