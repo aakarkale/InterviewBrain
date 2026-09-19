@@ -3,10 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/db/server";
 import { parseTranscript } from "@/lib/sessions/constants";
 import { draftStoryFromAnswer } from "./draft";
 import type { StoryDraft } from "./types";
+import { getUser } from "@/lib/auth/neon";
 
 export type ActionState = { error: string | null; success?: boolean };
 
@@ -22,23 +23,21 @@ function field(formData: FormData, key: string): string {
 }
 
 async function requireUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const db = await createClient();
+  const user = await getUser();
   if (!user) redirect("/login");
-  return { supabase, user };
+  return { db, user };
 }
 
 // Keep only ids that exist in the seeded competency taxonomy, so the brain can
 // rely on every tag resolving to a real slug.
 async function validTagIds(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  db: Awaited<ReturnType<typeof createClient>>,
   tags: string[]
 ): Promise<string[]> {
   const unique = [...new Set(tags)];
   if (unique.length === 0) return [];
-  const { data } = await supabase
+  const { data } = await db
     .from("competencies")
     .select("id")
     .in("id", unique);
@@ -62,13 +61,13 @@ export async function createStory(
     };
   }
 
-  const { supabase, user } = await requireUser();
-  const competency_tags = await validTagIds(supabase, tags);
+  const { db, user } = await requireUser();
+  const competency_tags = await validTagIds(db, tags);
   // RLS scopes sessions to the owner, so this select both resolves the id and
   // proves it belongs to this user — a stray/foreign id simply falls to null.
   const source_session_id = sourceSessionId
     ? ((
-        await supabase
+        await db
           .from("sessions")
           .select("id")
           .eq("id", sourceSessionId)
@@ -76,7 +75,7 @@ export async function createStory(
       ).data?.id ?? null)
     : null;
 
-  const { error } = await supabase
+  const { error } = await db
     .from("stories")
     .insert({ user_id: user.id, title, content, competency_tags, source_session_id });
 
@@ -99,10 +98,10 @@ export async function updateStory(
   if (!title) return { error: "Give the story a title." };
   if (!content) return { error: "Story content can't be empty." };
 
-  const { supabase } = await requireUser();
-  const competency_tags = await validTagIds(supabase, tags);
+  const { db } = await requireUser();
+  const competency_tags = await validTagIds(db, tags);
 
-  const { error } = await supabase
+  const { error } = await db
     .from("stories")
     .update({
       title,
@@ -122,8 +121,8 @@ export async function deleteStory(formData: FormData): Promise<void> {
   const id = field(formData, "id");
   if (!id) return;
 
-  const { supabase } = await requireUser();
-  await supabase.from("stories").delete().eq("id", id);
+  const { db } = await requireUser();
+  await db.from("stories").delete().eq("id", id);
   revalidatePath("/stories");
 }
 
@@ -139,10 +138,10 @@ export async function draftStoryFromSession(
 ): Promise<DraftState> {
   if (!sessionId) return { error: "Missing session." };
 
-  const { supabase } = await requireUser();
+  const { db } = await requireUser();
 
   // RLS returns only the owner's session.
-  const { data: session } = await supabase
+  const { data: session } = await db
     .from("sessions")
     .select("id, interview_type, transcript")
     .eq("id", sessionId)
@@ -187,7 +186,7 @@ export async function draftStoryFromSession(
     }
   }
 
-  const { data: competencies } = await supabase
+  const { data: competencies } = await db
     .from("competencies")
     .select("id, name")
     .eq("interview_type", "behavioral");

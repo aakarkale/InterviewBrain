@@ -12,8 +12,6 @@
     "@anthropic-ai/sdk": "^0.104.1",
     "@neondatabase/neon-js": "0.7.0-beta",
     "@neondatabase/postgrest-js": "0.2.0-beta",
-    "@supabase/ssr": "^0.12.0",
-    "@supabase/supabase-js": "^2.108.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "d3-force": "^3.0.0",

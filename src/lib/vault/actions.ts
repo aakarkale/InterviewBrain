@@ -22,8 +22,8 @@ export async function createCompany(
   const name = field(formData, "name");
   if (!name) return { error: "Give the company a name." };
 
-  const { supabase, user } = await requireUser();
-  const { data, error } = await supabase
+  const { db, user } = await requireUser();
+  const { data, error } = await db
     .from("companies")
     .insert({
       user_id: user.id,
@@ -54,8 +54,8 @@ export async function updateCompany(
   if (!id) return { error: "Missing company." };
   if (!name) return { error: "Company name can't be empty." };
 
-  const { supabase } = await requireUser();
-  const { error } = await supabase
+  const { db } = await requireUser();
+  const { error } = await db
     .from("companies")
     .update({
       name,
@@ -79,8 +79,8 @@ export async function setCompanyArchived(formData: FormData): Promise<void> {
   const id = field(formData, "id");
   if (!id) return;
   const archived = field(formData, "archived") === "true";
-  const { supabase } = await requireUser();
-  await supabase.from("companies").update({ is_archived: archived }).eq("id", id);
+  const { db } = await requireUser();
+  await db.from("companies").update({ is_archived: archived }).eq("id", id);
   revalidatePath(`/vault/${id}`);
   revalidatePath("/vault");
 }
@@ -88,8 +88,8 @@ export async function setCompanyArchived(formData: FormData): Promise<void> {
 export async function deleteCompany(formData: FormData): Promise<void> {
   const id = field(formData, "id");
   if (!id) return;
-  const { supabase } = await requireUser();
-  await supabase.from("companies").delete().eq("id", id);
+  const { db } = await requireUser();
+  await db.from("companies").delete().eq("id", id);
   revalidatePath("/vault");
   redirect("/vault");
 }
@@ -97,9 +97,9 @@ export async function deleteCompany(formData: FormData): Promise<void> {
 // -------------------------------------------------------------------- roles
 
 async function activeRoleCount(
-  supabase: Awaited<ReturnType<typeof requireUser>>["supabase"]
+  db: Awaited<ReturnType<typeof requireUser>>["db"]
 ): Promise<number> {
-  const { count } = await supabase
+  const { count } = await db
     .from("roles")
     .select("*", { count: "exact", head: true })
     .eq("is_archived", false);
@@ -122,15 +122,15 @@ export async function createRole(
   }
   if (!resume) return { error: "Paste your resume for this role." };
 
-  const { supabase, user } = await requireUser();
+  const { db, user } = await requireUser();
 
-  if ((await activeRoleCount(supabase)) >= MAX_ACTIVE_ROLES) {
+  if ((await activeRoleCount(db)) >= MAX_ACTIVE_ROLES) {
     return {
       error: `Free plan is capped at ${MAX_ACTIVE_ROLES} active roles. Archive one to add another.`,
     };
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("roles")
     .insert({
       user_id: user.id,
@@ -167,8 +167,8 @@ export async function updateRole(
   if (!job_description) return { error: "Job description can't be empty." };
   if (!resume) return { error: "Resume can't be empty." };
 
-  const { supabase } = await requireUser();
-  const { error } = await supabase
+  const { db } = await requireUser();
+  const { error } = await db
     .from("roles")
     .update({
       title,
@@ -193,8 +193,8 @@ export async function setRoleArchived(formData: FormData): Promise<void> {
   const company_id = field(formData, "company_id");
   if (!id) return;
   const archived = field(formData, "archived") === "true";
-  const { supabase } = await requireUser();
-  await supabase.from("roles").update({ is_archived: archived }).eq("id", id);
+  const { db } = await requireUser();
+  await db.from("roles").update({ is_archived: archived }).eq("id", id);
   if (company_id) revalidatePath(`/vault/${company_id}/roles/${id}`);
 }
 
@@ -202,8 +202,8 @@ export async function deleteRole(formData: FormData): Promise<void> {
   const id = field(formData, "id");
   const company_id = field(formData, "company_id");
   if (!id) return;
-  const { supabase } = await requireUser();
-  await supabase.from("roles").delete().eq("id", id);
+  const { db } = await requireUser();
+  await db.from("roles").delete().eq("id", id);
   if (company_id) {
     revalidatePath(`/vault/${company_id}`);
     redirect(`/vault/${company_id}`);
@@ -235,8 +235,8 @@ export async function updateRoundPlan(
     return { error: "Couldn't read the round plan." };
   }
 
-  const { supabase } = await requireUser();
-  const { error } = await supabase
+  const { db } = await requireUser();
+  const { error } = await db
     .from("roles")
     .update({ round_plan: plan })
     .eq("id", id);
@@ -263,8 +263,8 @@ export async function createDocument(
   if (!title) return { error: "Give the document a title." };
   if (!content) return { error: "Paste the document content." };
 
-  const { supabase, user } = await requireUser();
-  const { error } = await supabase.from("documents").insert({
+  const { db, user } = await requireUser();
+  const { error } = await db.from("documents").insert({
     role_id,
     user_id: user.id,
     type,
@@ -293,8 +293,8 @@ export async function updateDocument(
   if (!title) return { error: "Give the document a title." };
   if (!content) return { error: "Document content can't be empty." };
 
-  const { supabase } = await requireUser();
-  const { error } = await supabase
+  const { db } = await requireUser();
+  const { error } = await db
     .from("documents")
     .update({ type, title, content, updated_at: new Date().toISOString() })
     .eq("id", id);
@@ -308,7 +308,7 @@ export async function updateDocument(
 export async function deleteDocument(formData: FormData): Promise<void> {
   const id = field(formData, "id");
   if (!id) return;
-  const { supabase } = await requireUser();
-  await supabase.from("documents").delete().eq("id", id);
+  const { db } = await requireUser();
+  await db.from("documents").delete().eq("id", id);
   revalidatePath("/vault/[companyId]/roles/[roleId]", "page");
 }

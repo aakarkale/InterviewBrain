@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/db/server";
 import type { Company, DocumentRow, Interview, Role } from "./types";
 
 // RLS scopes every table to the authenticated owner, so these reads return only
@@ -10,8 +10,8 @@ export type CompanyOverview = Company & {
 
 // Company tiles with a per-vault role count (Company Vault tab + Interviews tab).
 export async function getCompaniesOverview(): Promise<CompanyOverview[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const db = await createClient();
+  const { data, error } = await db
     .from("companies")
     .select("*, roles(count)")
     .order("is_archived", { ascending: true })
@@ -30,9 +30,9 @@ export async function getCompany(id: string): Promise<{
   company: Company;
   roles: RoleOverview[];
 } | null> {
-  const supabase = await createClient();
+  const db = await createClient();
 
-  const { data: company, error } = await supabase
+  const { data: company, error } = await db
     .from("companies")
     .select("*")
     .eq("id", id)
@@ -41,7 +41,7 @@ export async function getCompany(id: string): Promise<{
   if (error) throw error;
   if (!company) return null;
 
-  const { data: roles } = await supabase
+  const { data: roles } = await db
     .from("roles")
     .select("*, documents(count), interviews(count)")
     .eq("company_id", id)
@@ -62,9 +62,9 @@ export async function getRole(id: string): Promise<{
   documents: DocumentRow[];
   interviews: InterviewOverview[];
 } | null> {
-  const supabase = await createClient();
+  const db = await createClient();
 
-  const { data: role, error } = await supabase
+  const { data: role, error } = await db
     .from("roles")
     .select("*")
     .eq("id", id)
@@ -75,13 +75,13 @@ export async function getRole(id: string): Promise<{
 
   const [{ data: company }, { data: documents }, { data: interviews }] =
     await Promise.all([
-      supabase.from("companies").select("*").eq("id", role.company_id).maybeSingle(),
-      supabase
+      db.from("companies").select("*").eq("id", role.company_id).maybeSingle(),
+      db
         .from("documents")
         .select("*")
         .eq("role_id", id)
         .order("created_at", { ascending: false }),
-      supabase
+      db
         .from("interviews")
         .select("*, rounds(count), sessions(count)")
         .eq("role_id", id)
@@ -99,8 +99,8 @@ export async function getRole(id: string): Promise<{
 }
 
 export async function getActiveRoleCount(): Promise<number> {
-  const supabase = await createClient();
-  const { count, error } = await supabase
+  const db = await createClient();
+  const { count, error } = await db
     .from("roles")
     .select("*", { count: "exact", head: true })
     .eq("is_archived", false);
@@ -112,8 +112,8 @@ export async function getActiveRoleCount(): Promise<number> {
 export async function getCompanyName(
   id: string
 ): Promise<Pick<Company, "name"> | null> {
-  const supabase = await createClient();
-  const { data } = await supabase
+  const db = await createClient();
+  const { data } = await db
     .from("companies")
     .select("name")
     .eq("id", id)
@@ -126,14 +126,14 @@ export async function getRoleCrumb(id: string): Promise<{
   role: Pick<Role, "id" | "title" | "company_id">;
   company: Pick<Company, "id" | "name">;
 } | null> {
-  const supabase = await createClient();
-  const { data: role } = await supabase
+  const db = await createClient();
+  const { data: role } = await db
     .from("roles")
     .select("id, title, company_id")
     .eq("id", id)
     .maybeSingle();
   if (!role) return null;
-  const { data: company } = await supabase
+  const { data: company } = await db
     .from("companies")
     .select("id, name")
     .eq("id", role.company_id)

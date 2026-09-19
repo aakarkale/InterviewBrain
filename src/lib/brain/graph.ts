@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/db/server";
 import { storyTags } from "@/lib/stories/types";
 import { insightEvidence } from "./types";
 import type {
@@ -32,7 +32,7 @@ function insightState(type: string): GraphState {
 // companies, competencies, and stories; edges are practice scores, story tags,
 // and the brain's pattern links. RLS scopes everything to the owner.
 export async function getBrainGraph(): Promise<GraphData> {
-  const supabase = await createClient();
+  const db = await createClient();
 
   const [
     { data: companies },
@@ -43,16 +43,16 @@ export async function getBrainGraph(): Promise<GraphData> {
     { data: sessions },
     { data: stories },
   ] = await Promise.all([
-    supabase.from("companies").select("id, name, is_archived"),
-    supabase.from("roles").select("id, company_id"),
-    supabase.from("interviews").select("id, role_id"),
-    supabase.from("competencies").select("id, name"),
-    supabase.from("insights").select("*").eq("status", "active"),
-    supabase
+    db.from("companies").select("id, name, is_archived"),
+    db.from("roles").select("id, company_id"),
+    db.from("interviews").select("id, role_id"),
+    db.from("competencies").select("id, name"),
+    db.from("insights").select("*").eq("status", "active"),
+    db
       .from("sessions")
       .select("interview_id, rubric_scores")
       .eq("status", "completed"),
-    supabase.from("stories").select("id, title, competency_tags"),
+    db.from("stories").select("id, title, competency_tags"),
   ]);
 
   const activeCompanies = (companies ?? []).filter((c) => !c.is_archived);

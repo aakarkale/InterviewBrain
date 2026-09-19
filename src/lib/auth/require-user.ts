@@ -2,16 +2,14 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/db/server";
+import { getUser } from "@/lib/auth/neon";
 
-// Shared server-action guard: returns the RLS-scoped client and the current
-// user, or redirects to login. Previously duplicated in applications/actions
-// and sessions/actions.
+// Shared server-action guard: returns the RLS-scoped Data API client and the
+// current user, or redirects to login.
 export async function requireUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) redirect("/login");
-  return { supabase, user };
+  const db = await createClient();
+  return { db, user };
 }

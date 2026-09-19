@@ -10,7 +10,7 @@ import type { Story } from "@/lib/stories/types";
 const MAX_DOC_CHARS = 6000;
 const MAX_STORIES = 12;
 
-// Mirrors the seeded competency taxonomy (supabase/migrations/...seed_competencies.sql).
+// Mirrors the seeded competency taxonomy (neon/migrations/0001_initial_schema.sql).
 // The interviewer probes these; feedback scoring later scores the same slugs.
 const COMPETENCY_FOCUS: Record<string, string[]> = {
   behavioral: [

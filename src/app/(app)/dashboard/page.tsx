@@ -11,7 +11,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/db/server";
 import {
   getActiveRoleCount,
   getCompaniesOverview,
@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/app/empty-state";
 import { PageHeader } from "@/components/app/page-header";
+import { getUser } from "@/lib/auth/neon";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -57,13 +58,11 @@ function sessionCompany(s: RecentSession): string {
 }
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const db = await createClient();
+  const user = await getUser();
 
   const { data: profile } = user
-    ? await supabase.from("users").select("full_name").eq("id", user.id).single()
+    ? await db.from("users").select("full_name").eq("id", user.id).single()
     : { data: null };
 
   const firstName = profile?.full_name?.split(/\s+/)[0];

@@ -1,4 +1,4 @@
-import type { Tables } from "@/lib/supabase/database.types";
+import type { Tables } from "@/lib/db/database.types";
 
 // Client-safe types + helpers (no server-only import).
 

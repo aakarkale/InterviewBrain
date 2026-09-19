@@ -17,53 +17,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      applications: {
-        Row: {
-          company_name: string
-          created_at: string
-          hiring_manager: string | null
-          id: string
-          is_archived: boolean
-          job_description: string
-          resume: string
-          role_title: string
-          team_name: string | null
-          user_id: string
-        }
-        Insert: {
-          company_name: string
-          created_at?: string
-          hiring_manager?: string | null
-          id?: string
-          is_archived?: boolean
-          job_description: string
-          resume: string
-          role_title: string
-          team_name?: string | null
-          user_id: string
-        }
-        Update: {
-          company_name?: string
-          created_at?: string
-          hiring_manager?: string | null
-          id?: string
-          is_archived?: boolean
-          job_description?: string
-          resume?: string
-          role_title?: string
-          team_name?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "applications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       companies: {
         Row: {
           created_at: string
@@ -131,7 +84,6 @@ export type Database = {
       }
       documents: {
         Row: {
-          application_id: string | null
           content: string
           created_at: string
           id: string
@@ -142,7 +94,6 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          application_id?: string | null
           content: string
           created_at?: string
           id?: string
@@ -153,7 +104,6 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          application_id?: string | null
           content?: string
           created_at?: string
           id?: string
@@ -164,13 +114,6 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "documents_application_id_fkey"
-            columns: ["application_id"]
-            isOneToOne: false
-            referencedRelation: "applications"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "documents_role_id_fkey"
             columns: ["role_id"]
@@ -246,7 +189,6 @@ export type Database = {
           created_at: string
           id: string
           label: string
-          legacy_application_id: string | null
           prep: Json | null
           prep_generated_at: string | null
           prep_input_fingerprint: string | null
@@ -260,7 +202,6 @@ export type Database = {
           created_at?: string
           id?: string
           label?: string
-          legacy_application_id?: string | null
           prep?: Json | null
           prep_generated_at?: string | null
           prep_input_fingerprint?: string | null
@@ -274,7 +215,6 @@ export type Database = {
           created_at?: string
           id?: string
           label?: string
-          legacy_application_id?: string | null
           prep?: Json | null
           prep_generated_at?: string | null
           prep_input_fingerprint?: string | null
@@ -312,7 +252,6 @@ export type Database = {
           id: string
           is_archived: boolean
           job_description: string
-          legacy_application_id: string | null
           linkedin_profile: string | null
           research_notes: string | null
           resume: string
@@ -332,7 +271,6 @@ export type Database = {
           id?: string
           is_archived?: boolean
           job_description: string
-          legacy_application_id?: string | null
           linkedin_profile?: string | null
           research_notes?: string | null
           resume: string
@@ -352,7 +290,6 @@ export type Database = {
           id?: string
           is_archived?: boolean
           job_description?: string
-          legacy_application_id?: string | null
           linkedin_profile?: string | null
           research_notes?: string | null
           resume?: string
@@ -381,7 +318,6 @@ export type Database = {
       }
       rounds: {
         Row: {
-          application_id: string | null
           coaching: Json | null
           coaching_generated_at: string | null
           created_at: string
@@ -400,7 +336,6 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          application_id?: string | null
           coaching?: Json | null
           coaching_generated_at?: string | null
           created_at?: string
@@ -419,7 +354,6 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          application_id?: string | null
           coaching?: Json | null
           coaching_generated_at?: string | null
           created_at?: string
@@ -439,13 +373,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "rounds_application_id_fkey"
-            columns: ["application_id"]
-            isOneToOne: false
-            referencedRelation: "applications"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "rounds_interview_id_fkey"
             columns: ["interview_id"]
             isOneToOne: false
@@ -463,7 +390,6 @@ export type Database = {
       }
       sessions: {
         Row: {
-          application_id: string | null
           completed_at: string | null
           created_at: string
           feedback_summary: string | null
@@ -477,7 +403,6 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          application_id?: string | null
           completed_at?: string | null
           created_at?: string
           feedback_summary?: string | null
@@ -491,7 +416,6 @@ export type Database = {
           user_id: string
         }
         Update: {
-          application_id?: string | null
           completed_at?: string | null
           created_at?: string
           feedback_summary?: string | null
@@ -505,13 +429,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "sessions_application_id_fkey"
-            columns: ["application_id"]
-            isOneToOne: false
-            referencedRelation: "applications"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "sessions_interview_id_fkey"
             columns: ["interview_id"]

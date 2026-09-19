@@ -1,7 +1,7 @@
 import "server-only";
 
 import { anthropic, MODEL } from "./client";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/db/server";
 import { parseTranscript } from "@/lib/sessions/constants";
 
 // rubric_scores jsonb shape (SPEC: competency_id → score + comments).
@@ -26,9 +26,9 @@ type ScoringResult = {
 // Returns false (without throwing) on any failure so session completion is
 // never blocked by a scoring hiccup — the feedback view offers a re-score.
 export async function scoreSession(sessionId: string): Promise<boolean> {
-  const supabase = await createClient();
+  const db = await createClient();
 
-  const { data: session } = await supabase
+  const { data: session } = await db
     .from("sessions")
     .select("id, interview_type, transcript")
     .eq("id", sessionId)
@@ -39,7 +39,7 @@ export async function scoreSession(sessionId: string): Promise<boolean> {
   const transcript = parseTranscript(session.transcript);
   const candidateTurns = transcript.filter((m) => m.role === "user");
   if (candidateTurns.length === 0) {
-    await supabase
+    await db
       .from("sessions")
       .update({
         feedback_summary:
@@ -50,7 +50,7 @@ export async function scoreSession(sessionId: string): Promise<boolean> {
     return true;
   }
 
-  const { data: competencies } = await supabase
+  const { data: competencies } = await db
     .from("competencies")
     .select("id, name")
     .eq("interview_type", session.interview_type);
@@ -145,7 +145,7 @@ ${SCORE_LEGEND}`,
       }
     }
 
-    const { error } = await supabase
+    const { error } = await db
       .from("sessions")
       .update({
         feedback_summary: parsed.summary?.trim() || "Feedback generated.",

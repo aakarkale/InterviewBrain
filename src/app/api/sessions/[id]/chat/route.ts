@@ -1,8 +1,9 @@
 import type { NextRequest } from "next/server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/db/server";
 import { anthropic, MODEL } from "@/lib/ai/client";
 import { buildInterviewerPrompt, KICKOFF_MESSAGE } from "@/lib/ai/interviewer";
+import { getUser } from "@/lib/auth/neon";
 import {
   MAX_MESSAGE_LENGTH,
   MAX_TRANSCRIPT_MESSAGES,
@@ -27,15 +28,13 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const supabase = await createClient();
+  const db = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) return jsonError("Not signed in.", 401);
 
   // RLS returns only the owner's session.
-  const { data: session } = await supabase
+  const { data: session } = await db
     .from("sessions")
     .select("*")
     .eq("id", id)
@@ -70,14 +69,14 @@ export async function POST(
 
   if (!session.interview_id) return jsonError("Interview not found.", 404);
 
-  const { data: interview } = await supabase
+  const { data: interview } = await db
     .from("interviews")
     .select("id, role_id")
     .eq("id", session.interview_id)
     .maybeSingle();
   if (!interview) return jsonError("Interview not found.", 404);
 
-  const { data: role } = await supabase
+  const { data: role } = await db
     .from("roles")
     .select("*")
     .eq("id", interview.role_id)
@@ -86,25 +85,25 @@ export async function POST(
 
   const [{ data: company }, { data: documents }, { data: round }, { data: rounds }, { data: stories }] =
     await Promise.all([
-      supabase.from("companies").select("*").eq("id", role.company_id).maybeSingle(),
-      supabase
+      db.from("companies").select("*").eq("id", role.company_id).maybeSingle(),
+      db
         .from("documents")
         .select("*")
         .eq("role_id", role.id)
         .order("created_at", { ascending: true }),
       session.round_id
-        ? supabase
+        ? db
             .from("rounds")
             .select("*")
             .eq("id", session.round_id)
             .maybeSingle()
         : Promise.resolve({ data: null }),
-      supabase
+      db
         .from("rounds")
         .select("id")
         .eq("interview_id", session.interview_id),
       session.interview_type === "behavioral"
-        ? supabase
+        ? db
             .from("stories")
             .select("*")
             .order("created_at", { ascending: true })
@@ -166,7 +165,7 @@ export async function POST(
           .trim();
 
         if (reply) {
-          const { error } = await supabase
+          const { error } = await db
             .from("sessions")
             .update({
               transcript: [

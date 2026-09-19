@@ -4,7 +4,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth/neon";
+import { createClient } from "@/lib/db/server";
 import { safeNext } from "@/lib/auth/redirect";
 
 export type AuthState = {
@@ -21,6 +22,20 @@ async function getOrigin() {
   return `${proto}://${host}`;
 }
 
+// The SDK is pre-1.0 and its error shape isn't fully typed; read it tolerantly
+// so a failed sign-in never surfaces as "undefined".
+function errorMessage(res: unknown, fallback: string): string | null {
+  if (!res || typeof res !== "object") return null;
+  const e = (res as { error?: unknown }).error;
+  if (!e) return null;
+  if (typeof e === "string") return e;
+  if (typeof e === "object") {
+    const m = (e as { message?: unknown }).message;
+    if (typeof m === "string" && m) return m;
+  }
+  return fallback;
+}
+
 export async function login(
   _prev: AuthState,
   formData: FormData
@@ -32,15 +47,9 @@ export async function login(
     return { error: "Email and password are required." };
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    return { error: error.message };
-  }
+  const res = await auth.signIn.email({ email, password });
+  const error = errorMessage(res, "Could not sign you in.");
+  if (error) return { error };
 
   redirect(safeNext(formData.get("next")));
 }
@@ -63,23 +72,13 @@ export async function signup(
     return { error: "Password must be at least 8 characters." };
   }
 
-  const origin = await getOrigin();
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { full_name: fullName },
-      emailRedirectTo: `${origin}/auth/callback`,
-    },
-  });
+  const res = await auth.signUp.email({ email, password, name: fullName });
+  const error = errorMessage(res, "Could not create your account.");
+  if (error) return { error };
 
-  if (error) {
-    return { error: error.message };
-  }
-
-  // email confirmation enabled: no session until the link is clicked
-  if (!data.session) {
+  // With email verification on, there's no session until the link is clicked.
+  const session = await auth.getSession().catch(() => null);
+  if (!session?.data?.user) {
     return {
       error: null,
       message: "Check your inbox — we sent you a confirmation link.",
@@ -93,24 +92,23 @@ export async function signInWithGoogle(formData: FormData) {
   const origin = await getOrigin();
   const next = safeNext(formData.get("next"));
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithOAuth({
+  const res = await auth.signIn.social({
     provider: "google",
-    options: {
-      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
-    },
+    callbackURL: `${origin}${next}`,
   });
 
-  if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
-  }
+  const error = errorMessage(res, "Could not start Google sign-in.");
+  if (error) redirect(`/login?error=${encodeURIComponent(error)}`);
 
-  redirect(data.url);
+  // Neon Auth returns the provider URL to hand the browser off to.
+  const url = (res as { data?: { url?: string }; url?: string } | null)?.data?.url
+    ?? (res as { url?: string } | null)?.url;
+  if (!url) redirect(`/login?error=${encodeURIComponent("Google sign-in is unavailable.")}`);
+  redirect(url);
 }
 
 export async function signOut() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  await auth.signOut().catch(() => null);
   redirect("/");
 }
 
@@ -129,16 +127,15 @@ export async function updateProfile(
     return { error: "Your name can't be empty.", success: false };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data } = await auth.getSession();
+  const user = data?.user;
+  if (!user) redirect("/login");
 
-  if (!user) {
-    redirect("/login");
-  }
+  // Keep the identity record and the app's profile row in step.
+  await auth.updateUser({ name: fullName }).catch(() => null);
 
-  const { error } = await supabase
+  const db = await createClient();
+  const { error } = await db
     .from("users")
     .update({ full_name: fullName })
     .eq("id", user.id);

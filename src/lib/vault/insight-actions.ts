@@ -24,8 +24,8 @@ export async function generateCompanyInsightsAction(
   const force = field(formData, "force") === "true";
   if (!company_id) return { error: "Missing company." };
 
-  const { supabase } = await requireUser();
-  const { data: company } = await supabase
+  const { db } = await requireUser();
+  const { data: company } = await db
     .from("companies")
     .select("id, name, h1b_tracking_enabled, insights, insights_generated_at, insights_input_fingerprint")
     .eq("id", company_id)
@@ -44,7 +44,7 @@ export async function generateCompanyInsightsAction(
     company.insights_generated_at !== null &&
     company.insights_generated_at >= monthStart;
   if (!already) {
-    const { count } = await supabase
+    const { count } = await db
       .from("companies")
       .select("*", { count: "exact", head: true })
       .gte("insights_generated_at", monthStart);
@@ -64,7 +64,7 @@ export async function generateCompanyInsightsAction(
   }
 
   const generated_at = new Date().toISOString();
-  const { error } = await supabase
+  const { error } = await db
     .from("companies")
     .update({
       insights: { ...result, generated_at },
@@ -173,8 +173,8 @@ export async function saveRoleLinkedin(
   if (!role_id) return { error: "Missing role." };
   const linkedin_profile = String(formData.get("linkedin_profile") ?? "").trim() || null;
 
-  const { supabase } = await requireUser();
-  const { error } = await supabase
+  const { db } = await requireUser();
+  const { error } = await db
     .from("roles")
     .update({ linkedin_profile })
     .eq("id", role_id);
@@ -196,8 +196,8 @@ export async function saveRoleResume(
   const resume = String(formData.get("resume") ?? "").trim();
   if (!resume) return { error: "Nothing to save — the resume text is empty." };
 
-  const { supabase } = await requireUser();
-  const { error } = await supabase.from("roles").update({ resume }).eq("id", role_id);
+  const { db } = await requireUser();
+  const { error } = await db.from("roles").update({ resume }).eq("id", role_id);
   if (error) return { error: error.message };
 
   if (company_id) revalidatePath(`/vault/${company_id}/roles/${role_id}`);

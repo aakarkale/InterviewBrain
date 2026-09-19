@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/db/server";
 
 // Legacy redirect: old /applications/:id links now point at the migrated
 // interview (or its role). Kept for one release so demo bookmarks survive.
@@ -10,9 +10,9 @@ export default async function LegacyApplicationRedirect({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
+  const db = await createClient();
 
-  const { data: interview } = await supabase
+  const { data: interview } = await db
     .from("interviews")
     .select("id, role_id, roles(company_id)")
     .eq("legacy_application_id", id)
@@ -25,7 +25,7 @@ export default async function LegacyApplicationRedirect({
     }
   }
 
-  const { data: role } = await supabase
+  const { data: role } = await db
     .from("roles")
     .select("id, company_id")
     .eq("legacy_application_id", id)
