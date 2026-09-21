@@ -1,4 +1,4 @@
-import type { Tables } from "@/lib/supabase/database.types";
+import type { Tables } from "@/lib/db/database.types";
 
 // Client-safe domain types + JSONB helpers for the Company (Vault) -> Role ->
 // Interview -> Round hierarchy. No server-only import so UI can use these.

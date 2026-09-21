@@ -28,15 +28,15 @@ export async function generateInterviewPrepAction(
   const force = field(formData, "force") === "true";
   if (!interview_id) return { error: "Missing interview." };
 
-  const { supabase } = await requireUser();
-  const { data: interview } = await supabase
+  const { db } = await requireUser();
+  const { data: interview } = await db
     .from("interviews")
     .select("id, role_id, prep, prep_input_fingerprint")
     .eq("id", interview_id)
     .maybeSingle();
   if (!interview) return { error: "Interview not found." };
 
-  const { data: role } = await supabase
+  const { data: role } = await db
     .from("roles")
     .select("id, title, job_description, resume, round_plan, company_id, companies(name)")
     .eq("id", interview.role_id)
@@ -44,8 +44,8 @@ export async function generateInterviewPrepAction(
   if (!role) return { error: "Role not found." };
 
   const [{ data: documents }, { data: rounds }] = await Promise.all([
-    supabase.from("documents").select("title, type, content").eq("role_id", role.id),
-    supabase
+    db.from("documents").select("title, type, content").eq("role_id", role.id),
+    db
       .from("rounds")
       .select("post_round_notes")
       .eq("interview_id", interview_id),
@@ -78,7 +78,7 @@ export async function generateInterviewPrepAction(
   if (!result) return { error: "Couldn't build prep right now — try again." };
 
   const generated_at = new Date().toISOString();
-  const { error } = await supabase
+  const { error } = await db
     .from("interviews")
     .update({
       prep: { ...result, sources: [], generated_at },
@@ -101,8 +101,8 @@ export async function generateRoundCoachingAction(
   const round_id = field(formData, "round_id");
   if (!round_id) return { error: "Missing round." };
 
-  const { supabase } = await requireUser();
-  const { data: round } = await supabase
+  const { db } = await requireUser();
+  const { data: round } = await db
     .from("rounds")
     .select(
       "id, interview_id, round_name, round_type, outcome, post_round_notes, transcript, summary, round_number"
@@ -111,21 +111,21 @@ export async function generateRoundCoachingAction(
     .maybeSingle();
   if (!round || !round.interview_id) return { error: "Round not found." };
 
-  const { data: interview } = await supabase
+  const { data: interview } = await db
     .from("interviews")
     .select("id, role_id")
     .eq("id", round.interview_id)
     .maybeSingle();
   if (!interview) return { error: "Interview not found." };
 
-  const { data: role } = await supabase
+  const { data: role } = await db
     .from("roles")
     .select("title, companies(name)")
     .eq("id", interview.role_id)
     .maybeSingle();
   if (!role) return { error: "Role not found." };
 
-  const { data: priors } = await supabase
+  const { data: priors } = await db
     .from("rounds")
     .select("round_name, round_type, outcome, post_round_notes, summary")
     .eq("interview_id", round.interview_id)
@@ -155,7 +155,7 @@ export async function generateRoundCoachingAction(
   }
 
   const generated_at = new Date().toISOString();
-  const { error } = await supabase
+  const { error } = await db
     .from("rounds")
     .update({
       coaching: { ...result, generated_at },

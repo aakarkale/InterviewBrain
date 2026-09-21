@@ -1,4 +1,4 @@
-import type { Tables } from "@/lib/supabase/database.types";
+import type { Tables } from "@/lib/db/database.types";
 
 // Plain types + helpers, safe to import from Client Components (no server-only
 // dependency). Keep data-fetching in queries.ts, which imports the server

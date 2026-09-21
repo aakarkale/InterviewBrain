@@ -1,5 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
-import type { Tables } from "@/lib/supabase/database.types";
+import { createClient } from "@/lib/db/server";
+import type { Tables } from "@/lib/db/database.types";
 import type { Company, Interview, Role, Round } from "@/lib/vault/types";
 
 export type Session = Tables<"sessions">;
@@ -13,9 +13,9 @@ export async function getInterview(id: string): Promise<{
   rounds: Round[];
   sessions: Session[];
 } | null> {
-  const supabase = await createClient();
+  const db = await createClient();
 
-  const { data: interview, error } = await supabase
+  const { data: interview, error } = await db
     .from("interviews")
     .select("*")
     .eq("id", id)
@@ -24,7 +24,7 @@ export async function getInterview(id: string): Promise<{
   if (error) throw error;
   if (!interview) return null;
 
-  const { data: role } = await supabase
+  const { data: role } = await db
     .from("roles")
     .select("*")
     .eq("id", interview.role_id)
@@ -33,13 +33,13 @@ export async function getInterview(id: string): Promise<{
 
   const [{ data: company }, { data: rounds }, { data: sessions }] =
     await Promise.all([
-      supabase.from("companies").select("*").eq("id", role.company_id).maybeSingle(),
-      supabase
+      db.from("companies").select("*").eq("id", role.company_id).maybeSingle(),
+      db
         .from("rounds")
         .select("*")
         .eq("interview_id", id)
         .order("round_number", { ascending: true }),
-      supabase
+      db
         .from("sessions")
         .select("*")
         .eq("interview_id", id)
@@ -65,9 +65,9 @@ export async function getRound(id: string): Promise<{
   // Earlier rounds in the same interview, for round-to-round context.
   priorRounds: Round[];
 } | null> {
-  const supabase = await createClient();
+  const db = await createClient();
 
-  const { data: round, error } = await supabase
+  const { data: round, error } = await db
     .from("rounds")
     .select("*")
     .eq("id", id)
@@ -76,14 +76,14 @@ export async function getRound(id: string): Promise<{
   if (error) throw error;
   if (!round || !round.interview_id) return null;
 
-  const { data: interview } = await supabase
+  const { data: interview } = await db
     .from("interviews")
     .select("*")
     .eq("id", round.interview_id)
     .maybeSingle();
   if (!interview) return null;
 
-  const { data: role } = await supabase
+  const { data: role } = await db
     .from("roles")
     .select("*")
     .eq("id", interview.role_id)
@@ -91,8 +91,8 @@ export async function getRound(id: string): Promise<{
   if (!role) return null;
 
   const [{ data: company }, { data: priorRounds }] = await Promise.all([
-    supabase.from("companies").select("*").eq("id", role.company_id).maybeSingle(),
-    supabase
+    db.from("companies").select("*").eq("id", role.company_id).maybeSingle(),
+    db
       .from("rounds")
       .select("*")
       .eq("interview_id", round.interview_id)
@@ -111,20 +111,20 @@ export async function getInterviewCrumb(id: string): Promise<{
   role: Pick<Role, "id" | "title" | "company_id">;
   company: Pick<Company, "id" | "name">;
 } | null> {
-  const supabase = await createClient();
-  const { data: interview } = await supabase
+  const db = await createClient();
+  const { data: interview } = await db
     .from("interviews")
     .select("id, label, role_id")
     .eq("id", id)
     .maybeSingle();
   if (!interview) return null;
-  const { data: role } = await supabase
+  const { data: role } = await db
     .from("roles")
     .select("id, title, company_id")
     .eq("id", interview.role_id)
     .maybeSingle();
   if (!role) return null;
-  const { data: company } = await supabase
+  const { data: company } = await db
     .from("companies")
     .select("id, name")
     .eq("id", role.company_id)

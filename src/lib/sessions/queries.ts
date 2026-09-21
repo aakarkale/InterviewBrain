@@ -1,5 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
-import type { Tables } from "@/lib/supabase/database.types";
+import { createClient } from "@/lib/db/server";
+import type { Tables } from "@/lib/db/database.types";
 import type { Company, Interview, Role, Round } from "@/lib/vault/types";
 
 export type Session = Tables<"sessions">;
@@ -18,9 +18,9 @@ export type SessionDetail = {
 export async function getSessionDetail(
   id: string
 ): Promise<SessionDetail | null> {
-  const supabase = await createClient();
+  const db = await createClient();
 
-  const { data: session, error } = await supabase
+  const { data: session, error } = await db
     .from("sessions")
     .select("*")
     .eq("id", id)
@@ -29,14 +29,14 @@ export async function getSessionDetail(
   if (error) throw error;
   if (!session || !session.interview_id) return null;
 
-  const { data: interview } = await supabase
+  const { data: interview } = await db
     .from("interviews")
     .select("*")
     .eq("id", session.interview_id)
     .maybeSingle();
   if (!interview) return null;
 
-  const { data: role } = await supabase
+  const { data: role } = await db
     .from("roles")
     .select("*")
     .eq("id", interview.role_id)
@@ -44,9 +44,9 @@ export async function getSessionDetail(
   if (!role) return null;
 
   const [{ data: company }, { data: round }] = await Promise.all([
-    supabase.from("companies").select("*").eq("id", role.company_id).maybeSingle(),
+    db.from("companies").select("*").eq("id", role.company_id).maybeSingle(),
     session.round_id
-      ? supabase.from("rounds").select("*").eq("id", session.round_id).maybeSingle()
+      ? db.from("rounds").select("*").eq("id", session.round_id).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
 
@@ -58,8 +58,8 @@ export async function getSessionDetail(
 export async function getSessionsForInterview(
   interviewId: string
 ): Promise<Session[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const db = await createClient();
+  const { data, error } = await db
     .from("sessions")
     .select("*")
     .eq("interview_id", interviewId)
@@ -83,8 +83,8 @@ export type RecentSession = Session & {
 };
 
 export async function getRecentSessions(limit = 5): Promise<RecentSession[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const db = await createClient();
+  const { data, error } = await db
     .from("sessions")
     .select(
       "*, interviews(id, role_id, roles(id, title, company_id, companies(id, name)))"
@@ -99,13 +99,13 @@ export async function getRecentSessions(limit = 5): Promise<RecentSession[]> {
 // Sessions created since the first of the current calendar month (UTC), for the
 // per-month free cap.
 export async function getMonthlySessionCount(): Promise<number> {
-  const supabase = await createClient();
+  const db = await createClient();
   const now = new Date();
   const monthStart = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)
   ).toISOString();
 
-  const { count, error } = await supabase
+  const { count, error } = await db
     .from("sessions")
     .select("*", { count: "exact", head: true })
     .gte("created_at", monthStart);

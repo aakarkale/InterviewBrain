@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/db/server";
 import type { Competency, Story } from "./types";
 
 export type { Competency, Story } from "./types";
@@ -8,8 +8,8 @@ export { storyTags } from "./types";
 // seed taxonomy, readable by any authenticated user.
 
 export async function getStories(): Promise<Story[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const db = await createClient();
+  const { data, error } = await db
     .from("stories")
     .select("*")
     .order("created_at", { ascending: false });
@@ -19,8 +19,8 @@ export async function getStories(): Promise<Story[]> {
 }
 
 export async function getCompetencies(): Promise<Competency[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const db = await createClient();
+  const { data, error } = await db
     .from("competencies")
     .select("*")
     .order("interview_type", { ascending: true })

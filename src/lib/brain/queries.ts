@@ -1,11 +1,11 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/db/server";
 import { insightEvidence, type Insight } from "./types";
 
 // RLS scopes insights to the owner.
 
 export async function getInsights(): Promise<Insight[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const db = await createClient();
+  const { data, error } = await db
     .from("insights")
     .select("*")
     .eq("status", "active")
@@ -22,8 +22,8 @@ export async function getInsights(): Promise<Insight[]> {
 export async function getCompaniesByInsight(): Promise<
   Record<string, string[]>
 > {
-  const supabase = await createClient();
-  const { data: insights, error } = await supabase
+  const db = await createClient();
+  const { data: insights, error } = await db
     .from("insights")
     .select("id, evidence")
     .eq("status", "active");
@@ -60,7 +60,7 @@ export async function getCompaniesByInsight(): Promise<
   await Promise.all([
     (async () => {
       if (!ids.session.size) return;
-      const { data } = await supabase
+      const { data } = await db
         .from("sessions")
         .select("id, interviews(roles(companies(name)))")
         .in("id", [...ids.session]);
@@ -71,7 +71,7 @@ export async function getCompaniesByInsight(): Promise<
     })(),
     (async () => {
       if (!ids.round.size) return;
-      const { data } = await supabase
+      const { data } = await db
         .from("rounds")
         .select("id, interviews(roles(companies(name)))")
         .in("id", [...ids.round]);
@@ -82,7 +82,7 @@ export async function getCompaniesByInsight(): Promise<
     })(),
     (async () => {
       if (!ids.document.size) return;
-      const { data } = await supabase
+      const { data } = await db
         .from("documents")
         .select("id, roles(companies(name))")
         .in("id", [...ids.document]);
@@ -93,7 +93,7 @@ export async function getCompaniesByInsight(): Promise<
     })(),
     (async () => {
       if (!ids.company.size) return;
-      const { data } = await supabase
+      const { data } = await db
         .from("companies")
         .select("id, name")
         .in("id", [...ids.company]);
@@ -101,7 +101,7 @@ export async function getCompaniesByInsight(): Promise<
     })(),
     (async () => {
       if (!ids.role.size) return;
-      const { data } = await supabase
+      const { data } = await db
         .from("roles")
         .select("id, companies(name)")
         .in("id", [...ids.role]);
@@ -128,8 +128,8 @@ export async function getCompaniesByInsight(): Promise<
 }
 
 export async function getActiveInsightCount(): Promise<number> {
-  const supabase = await createClient();
-  const { count, error } = await supabase
+  const db = await createClient();
+  const { count, error } = await db
     .from("insights")
     .select("*", { count: "exact", head: true })
     .eq("status", "active");
@@ -142,8 +142,8 @@ export async function getActiveInsightCount(): Promise<number> {
 // card. Strengths are reassuring but the product's job is to surface what to
 // fix, so weaknesses and cross-company patterns rank first.
 export async function getTopInsight(): Promise<Insight | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const db = await createClient();
+  const { data, error } = await db
     .from("insights")
     .select("*")
     .eq("status", "active")

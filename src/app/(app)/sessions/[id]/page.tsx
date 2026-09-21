@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/db/server";
 import { getSessionDetail } from "@/lib/sessions/queries";
 import { parseTranscript } from "@/lib/sessions/constants";
 import { INTERVIEW_TYPES } from "@/lib/applications/constants";
@@ -37,8 +37,8 @@ export default async function SessionPage({
   const transcript = parseTranscript(session.transcript);
 
   if (session.status === "completed") {
-    const supabase = await createClient();
-    const { data: competencies } = await supabase
+    const db = await createClient();
+    const { data: competencies } = await db
       .from("competencies")
       .select("id, name")
       .eq("interview_type", session.interview_type);

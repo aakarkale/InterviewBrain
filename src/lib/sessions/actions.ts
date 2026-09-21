@@ -29,13 +29,13 @@ export async function startSession(
     return { error: "Pick an interview type." };
   }
 
-  const { supabase, user } = await requireUser();
+  const { db, user } = await requireUser();
 
   const now = new Date();
   const monthStart = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)
   ).toISOString();
-  const { count, error: countError } = await supabase
+  const { count, error: countError } = await db
     .from("sessions")
     .select("*", { count: "exact", head: true })
     .gte("created_at", monthStart);
@@ -48,7 +48,7 @@ export async function startSession(
   }
 
   // RLS hides other users' interviews, so this also verifies ownership.
-  const { data: interview } = await supabase
+  const { data: interview } = await db
     .from("interviews")
     .select("id, roles(is_archived)")
     .eq("id", interview_id)
@@ -61,7 +61,7 @@ export async function startSession(
   }
 
   if (round_id) {
-    const { data: round } = await supabase
+    const { data: round } = await db
       .from("rounds")
       .select("id, interview_id")
       .eq("id", round_id)
@@ -71,7 +71,7 @@ export async function startSession(
     }
   }
 
-  const { data: session, error } = await supabase
+  const { data: session, error } = await db
     .from("sessions")
     .insert({
       user_id: user.id,
@@ -95,9 +95,9 @@ export async function completeSession(
   const id = field(formData, "id");
   if (!id) return { error: "Missing session." };
 
-  const { supabase } = await requireUser();
+  const { db } = await requireUser();
 
-  const { data: session } = await supabase
+  const { data: session } = await db
     .from("sessions")
     .select("id, status")
     .eq("id", id)
@@ -108,7 +108,7 @@ export async function completeSession(
     return { error: null, success: true };
   }
 
-  const { error } = await supabase
+  const { error } = await db
     .from("sessions")
     .update({ status: "completed", completed_at: new Date().toISOString() })
     .eq("id", id);

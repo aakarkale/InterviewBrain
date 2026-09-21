@@ -1,26 +1,25 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/db/server";
 import { signOut } from "@/lib/auth/actions";
 import { ProfileForm } from "@/components/app/profile-form";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
+import { getUser } from "@/lib/auth/neon";
 
 export const metadata: Metadata = { title: "Settings" };
 
 export default async function SettingsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const db = await createClient();
+  const user = await getUser();
 
   if (!user) {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
+  const { data: profile } = await db
     .from("users")
     .select("full_name")
     .eq("id", user.id)

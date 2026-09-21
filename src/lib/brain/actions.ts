@@ -3,19 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/server";
 import { regenerateBrain } from "./extract";
 import { scoreSession } from "@/lib/ai/scorer";
+import { getUser } from "@/lib/auth/neon";
 
 export type ActionState = { error: string | null; success?: boolean };
 
 // Manual refresh (SPEC: event-driven regeneration plus a manual refresh).
 // Awaited inline so the page reflects the new insights on reload.
 export async function refreshBrain(): Promise<ActionState> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) redirect("/login");
 
   const ok = await regenerateBrain();
@@ -36,10 +33,7 @@ export async function rescoreSession(
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return { error: "Missing session." };
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) redirect("/login");
 
   const ok = await scoreSession(id);

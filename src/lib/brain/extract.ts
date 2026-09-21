@@ -1,10 +1,11 @@
 import "server-only";
 
 import { anthropic, MODEL } from "@/lib/ai/client";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/db/server";
 import { storyTags } from "@/lib/stories/types";
 import { INSIGHT_TYPES, type EvidenceRef } from "./types";
 import type { RubricScores } from "@/lib/ai/scorer";
+import { getUser } from "@/lib/auth/neon";
 
 const DOC_CLIP = 1500;
 
@@ -23,11 +24,9 @@ type ExtractedInsight = {
 // throwing) on any failure — brain regeneration is a background side effect and
 // must never surface as a user-facing error on the action that triggered it.
 export async function regenerateBrain(): Promise<boolean> {
-  const supabase = await createClient();
+  const db = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) return false;
 
   try {
@@ -41,21 +40,21 @@ export async function regenerateBrain(): Promise<boolean> {
       { data: stories },
       { data: competencies },
     ] = await Promise.all([
-      supabase.from("companies").select("id, name"),
-      supabase.from("roles").select("id, company_id, title"),
-      supabase.from("interviews").select("id, role_id"),
-      supabase
+      db.from("companies").select("id, name"),
+      db.from("roles").select("id, company_id, title"),
+      db.from("interviews").select("id, role_id"),
+      db
         .from("sessions")
         .select(
           "id, interview_id, interview_type, status, rubric_scores, feedback_summary, created_at"
         )
         .eq("status", "completed"),
-      supabase
+      db
         .from("rounds")
         .select("id, interview_id, round_type, round_name, outcome, post_round_notes"),
-      supabase.from("documents").select("id, role_id, type, title, content"),
-      supabase.from("stories").select("*"),
-      supabase.from("competencies").select("id, name, interview_type"),
+      db.from("documents").select("id, role_id, type, title, content"),
+      db.from("stories").select("*"),
+      db.from("competencies").select("id, name, interview_type"),
     ]);
 
     const companyName = new Map((companies ?? []).map((c) => [c.id, c.name]));
@@ -94,7 +93,7 @@ export async function regenerateBrain(): Promise<boolean> {
     // Not enough signal yet — clear stale insights and stop. The brain needs at
     // least one scored session or one logged real-round note to say anything.
     if (scoredSessions.length === 0 && notedRounds.length === 0) {
-      await supabase.from("insights").delete().eq("user_id", user.id);
+      await db.from("insights").delete().eq("user_id", user.id);
       return true;
     }
 
@@ -301,14 +300,14 @@ ${storyLines || "(none)"}`,
       .filter((r): r is NonNullable<typeof r> => r !== null);
 
     // Replace the active set: delete then insert. Insights are fully derived.
-    const { error: delError } = await supabase
+    const { error: delError } = await db
       .from("insights")
       .delete()
       .eq("user_id", user.id);
     if (delError) return false;
 
     if (rows.length > 0) {
-      const { error: insError } = await supabase.from("insights").insert(rows);
+      const { error: insError } = await db.from("insights").insert(rows);
       if (insError) return false;
     }
 

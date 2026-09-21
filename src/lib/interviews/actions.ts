@@ -47,16 +47,16 @@ export async function createInterview(
   const label = field(formData, "label") || "Interview";
   if (!role_id) return { error: "Missing role." };
 
-  const { supabase, user } = await requireUser();
+  const { db, user } = await requireUser();
 
-  const { data: role } = await supabase
+  const { data: role } = await db
     .from("roles")
     .select("id, company_id, round_plan")
     .eq("id", role_id)
     .maybeSingle();
   if (!role) return { error: "Role not found." };
 
-  const { data: interview, error } = await supabase
+  const { data: interview, error } = await db
     .from("interviews")
     .insert({ user_id: user.id, role_id, label })
     .select("id")
@@ -74,7 +74,7 @@ export async function createInterview(
       round_type: ROUND_TYPE_VALUES.includes(entry.type) ? entry.type : "other",
       outcome: "upcoming",
     }));
-    await supabase.from("rounds").insert(rows);
+    await db.from("rounds").insert(rows);
   }
 
   revalidatePath("/interviews");
@@ -93,8 +93,8 @@ export async function updateInterview(
     return { error: "Pick a valid status." };
   }
 
-  const { supabase } = await requireUser();
-  const { error } = await supabase
+  const { db } = await requireUser();
+  const { error } = await db
     .from("interviews")
     .update({ label, status, scheduled_date: nullableField(formData, "scheduled_date") })
     .eq("id", id);
@@ -110,8 +110,8 @@ export async function deleteInterview(formData: FormData): Promise<void> {
   const id = field(formData, "id");
   const back = field(formData, "back");
   if (!id) return;
-  const { supabase } = await requireUser();
-  await supabase.from("interviews").delete().eq("id", id);
+  const { db } = await requireUser();
+  await db.from("interviews").delete().eq("id", id);
   revalidatePath("/interviews");
   if (back) redirect(back);
 }
@@ -135,9 +135,9 @@ export async function createRound(
     return { error: "Round number must be a positive whole number." };
   }
 
-  const { supabase, user } = await requireUser();
+  const { db, user } = await requireUser();
   const post_round_notes = nullableField(formData, "post_round_notes");
-  const { error } = await supabase.from("rounds").insert({
+  const { error } = await db.from("rounds").insert({
     interview_id,
     user_id: user.id,
     round_number,
@@ -176,8 +176,8 @@ export async function updateRound(
   }
 
   const post_round_notes = nullableField(formData, "post_round_notes");
-  const { supabase } = await requireUser();
-  const { error } = await supabase
+  const { db } = await requireUser();
+  const { error } = await db
     .from("rounds")
     .update({
       round_number,
@@ -206,8 +206,8 @@ export async function deleteRound(formData: FormData): Promise<void> {
   const id = field(formData, "id");
   const back = field(formData, "back");
   if (!id) return;
-  const { supabase } = await requireUser();
-  await supabase.from("rounds").delete().eq("id", id);
+  const { db } = await requireUser();
+  await db.from("rounds").delete().eq("id", id);
   revalidatePath(INTERVIEW_ROUTE, "page");
   if (back) redirect(back);
 }

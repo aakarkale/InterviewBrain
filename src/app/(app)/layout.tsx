@@ -1,29 +1,39 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/db/server";
 import { AppNav } from "@/components/app/app-nav";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { UserMenu } from "@/components/app/user-menu";
+import { ensureProfile, getUser } from "@/lib/auth/neon";
+
+// Every route in this group renders per-user, RLS-scoped data and reads the
+// request's session cookie, so none of it may be statically prerendered.
+// Under Supabase this happened implicitly because createClient() awaited
+// cookies(); the Neon Data API client doesn't, so it is declared explicitly.
+// Segment config on a layout applies to all nested routes.
+export const dynamic = "force-dynamic";
 
 export default async function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const db = await createClient();
+  const user = await getUser();
 
   // the proxy already gates these routes; this is defense in depth
   if (!user) {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
+  // Neon Auth owns identity; mirror the profile row on first visit so the
+  // rest of the app (and every user_id foreign key) has something to point at.
+  await ensureProfile(db, user);
+
+  const { data: profile } = await db
     .from("users")
     .select("full_name")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   return (
     <div className="flex min-h-dvh flex-1 flex-col">

@@ -1,9 +1,10 @@
 import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/db/server";
 import { fingerprint } from "@/lib/vault/fingerprint";
 import { generateRoleAlignment } from "@/lib/vault/role-alignment";
+import { getUser } from "@/lib/auth/neon";
 
 // The generation itself (two AI passes) runs in an after() callback, so the
 // serverless invocation must stay alive well past the immediate response.
@@ -25,14 +26,12 @@ export async function GET(
   { params }: { params: Promise<{ roleId: string }> }
 ) {
   const { roleId } = await params;
-  const supabase = await createClient();
+  const db = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) return jsonError("Not signed in.", 401);
 
-  const { data: role } = await supabase
+  const { data: role } = await db
     .from("roles")
     .select("id, alignment_generated_at")
     .eq("id", roleId)
@@ -60,15 +59,13 @@ export async function POST(
     force = false;
   }
 
-  const supabase = await createClient();
+  const db = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) return jsonError("Not signed in.", 401);
 
   // RLS returns only the owner's role.
-  const { data: role } = await supabase
+  const { data: role } = await db
     .from("roles")
     .select(
       "id, company_id, title, job_description, resume, linkedin_profile, research_notes, alignment, alignment_input_fingerprint, alignment_generated_at, companies(name)"
@@ -115,7 +112,7 @@ export async function POST(
       if (!result) return; // leave the timestamp unchanged → client times out
 
       const generated_at = new Date().toISOString();
-      const { error } = await supabase
+      const { error } = await db
         .from("roles")
         .update({
           alignment: { ...result, sources: [], generated_at },
